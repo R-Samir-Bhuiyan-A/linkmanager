@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Activity, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
+import api from '../api';
 
 const StatCard = ({ title, value, change, icon: Icon, delay }) => (
     <motion.div
@@ -24,18 +26,39 @@ const StatCard = ({ title, value, change, icon: Icon, delay }) => (
 );
 
 export default function Analytics() {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    const fetchStats = async () => {
+        try {
+            const res = await api.get('/analytics/stats');
+            setStats(res.data);
+        } catch (err) {
+            console.error('Failed to fetch analytics:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <div className="p-12 text-center text-zinc-500 animate-pulse">Loading analytics...</div>;
+    if (!stats) return <div className="p-12 text-center text-red-400">Failed to load analytics</div>;
+
     return (
         <PageTransition className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-white">Analytics</h1>
                 <p className="text-zinc-400">Real-time usage statistics across all projects.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Total Requests" value="2.4M" change="+12.5%" icon={Activity} delay={0} />
-                <StatCard title="Active Instances" value="14.2k" change="+3.2%" icon={Users} delay={0.1} />
-                <StatCard title="Avg Latency" value="45ms" change="-8.1%" icon={BarChart3} delay={0.2} />
-                <StatCard title="Global Regions" value="12" change="+2" icon={Globe} delay={0.3} />
+                <StatCard title="Total Requests" value={stats.totalRequests.toLocaleString()} change="+12.5%" icon={Activity} delay={0} />
+                <StatCard title="Active Instances" value={stats.activeInstances.toLocaleString()} change="+3.2%" icon={Users} delay={0.1} />
+                <StatCard title="Avg Latency" value={stats.avgLatency + "ms"} change="-8.1%" icon={BarChart3} delay={0.2} />
+                <StatCard title="Global Regions" value={stats.globalRegions} change="+0" icon={Globe} delay={0.3} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -46,27 +69,36 @@ export default function Analytics() {
                     className="lg:col-span-2 p-6 rounded-3xl bg-zinc-900 border border-white/5 h-[400px] flex flex-col"
                 >
                     <div className="flex items-center justify-between mb-8">
-                        <h3 className="font-bold text-lg">Traffic Volume</h3>
+                        <h3 className="font-bold text-lg text-white">Traffic Volume</h3>
                         <select className="bg-black/20 border border-white/10 rounded-lg text-xs px-3 py-1 text-zinc-400 focus:outline-none">
                             <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
                         </select>
                     </div>
-                    {/* CSS Chart Mockup */}
+                    {/* Real Data Chart */}
                     <div className="flex-1 flex items-end gap-2 px-4 pb-4">
-                        {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 50, 95].map((h, i) => (
-                            <div key={i} className="flex-1 bg-violet-500/10 rounded-t-sm relative group h-full flex items-end">
-                                <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${h}%` }}
-                                    transition={{ duration: 1, delay: i * 0.05 }}
-                                    className="w-full bg-gradient-to-t from-violet-600 to-cyan-500 opacity-60 group-hover:opacity-100 transition-opacity rounded-t-md"
-                                />
-                            </div>
-                        ))}
+                        {(() => {
+                            const maxVal = Math.max(...(stats.trafficHistory?.data || []), 1);
+                            return stats.trafficHistory?.data.map((h, i) => (
+                                <div key={i} className="flex-1 bg-violet-500/10 rounded-t-sm relative group h-full flex items-end">
+                                    <motion.div
+                                        initial={{ height: 0 }}
+                                        animate={{ height: `${(h / maxVal) * 100}%` }}
+                                        transition={{ duration: 1, delay: i * 0.05 }}
+                                        className="w-full bg-gradient-to-t from-violet-600 to-cyan-500 opacity-60 group-hover:opacity-100 transition-opacity rounded-t-md relative"
+                                    >
+                                        {/* Tooltip */}
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                            {h} Reqs
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            ));
+                        })()}
                     </div>
                     <div className="flex justify-between px-4 text-xs text-zinc-500 font-mono mt-2">
-                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                        {stats.trafficHistory?.labels.map((day, i) => (
+                            <span key={i}>{day}</span>
+                        ))}
                     </div>
                 </motion.div>
 
@@ -76,17 +108,12 @@ export default function Analytics() {
                     transition={{ delay: 0.5 }}
                     className="p-6 rounded-3xl bg-zinc-900 border border-white/5 h-[400px]"
                 >
-                    <h3 className="font-bold text-lg mb-6">Device Distribution</h3>
+                    <h3 className="font-bold text-lg mb-6 text-white">Device Distribution</h3>
                     <div className="space-y-6">
-                        {[
-                            { label: 'iOS', val: 45, color: 'bg-indigo-500' },
-                            { label: 'Android', val: 35, color: 'bg-emerald-500' },
-                            { label: 'Web', val: 15, color: 'bg-amber-500' },
-                            { label: 'Desktop', val: 5, color: 'bg-rose-500' }
-                        ].map((d, i) => (
+                        {stats.deviceDistribution?.map((d, i) => (
                             <div key={d.label}>
                                 <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-zinc-300">{d.label}</span>
+                                    <span className="text-zinc-300 capitalize">{d.label}</span>
                                     <span className="text-zinc-500 font-mono">{d.val}%</span>
                                 </div>
                                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
@@ -94,7 +121,7 @@ export default function Analytics() {
                                         initial={{ width: 0 }}
                                         animate={{ width: `${d.val}%` }}
                                         transition={{ delay: 0.5 + (i * 0.1), duration: 1 }}
-                                        className={`h-full ${d.color}`}
+                                        className={`h-full ${d.color || 'bg-zinc-500'}`}
                                     />
                                 </div>
                             </div>

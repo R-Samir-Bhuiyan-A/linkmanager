@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "698e02190f88071306b443d2",
+    "name": "test2",
+    "slug": "test2",
+    "category": "Minecraft Plugin",
+    "maintenanceMode": false,
+    "publicId": "pub_546e65fb3f5473d4",
+    "secretKey": "sec_313889b95a34732124c57c819a10e48c",
+    "latestVersion": "1.0.0",
+    "minVersion": "0.0.0",
+    "createdAt": "2026-02-12T16:38:49.196Z",
+    "updatedAt": "2026-02-12T17:04:32.821Z",
+    "__v": 1,
+    "clientAuth": {
+      "enabled": false,
+      "publicFields": []
+    },
+    "description": "",
+    "links": []
+  }
+]

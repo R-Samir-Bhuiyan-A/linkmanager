@@ -49,6 +49,7 @@ export default function ApiPlayground() {
     const [response, setResponse] = useState(null);
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState('');
+    const [useAuth, setUseAuth] = useState(false);
 
     useEffect(() => {
         fetchProjects();
@@ -107,19 +108,19 @@ export default function ApiPlayground() {
             const url = getFullUrl();
             let res;
 
-            if (selectedEndpoint.method === 'GET') {
-                res = await axios.get(url);
-            } else {
-                // For POST/PUT, we need to handle the body
-                // NOTE: We strip params from URL for POST if axios handles it, but here we constructed full URL
-                // Actually axios.post(url, data)
-                // We need to allow untruncated URL for POST? No, typically path params are in URL, body is separate.
-                // Our getFullUrl logic adds query params for GET, but path params for all.
-                // Reset URL for POST to not include query params if not needed, but our helper is robust enough? 
-                // Let's rely on getFullUrl logic only replacing :publicId which is correct for POST too.
-                // WAIT: getFullUrl adds query string for GET only. Correct.
+            const config = {
+                headers: {}
+            };
 
-                res = await axios.post(url, JSON.parse(body));
+            if (useAuth) {
+                config.headers['x-client-id'] = selectedProject.publicId;
+                config.headers['x-secret'] = selectedProject.secretKey;
+            }
+
+            if (selectedEndpoint.method === 'GET') {
+                res = await axios.get(url, config);
+            } else {
+                res = await axios.post(url, JSON.parse(body), config);
             }
 
             setResponse({
@@ -173,8 +174,8 @@ export default function ApiPlayground() {
                                     setResponse(null);
                                 }}
                                 className={`w-full text-left p-4 rounded-xl border transition-all duration-200 group relative overflow-hidden ${selectedEndpoint === endpoint
-                                        ? 'bg-violet-500/10 border-violet-500/50 text-white'
-                                        : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'
+                                    ? 'bg-violet-500/10 border-violet-500/50 text-white'
+                                    : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'
                                     }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
@@ -202,6 +203,19 @@ export default function ApiPlayground() {
                             <div className="flex-1 font-mono text-sm text-zinc-300 truncate">
                                 {getFullUrl()}
                             </div>
+
+                            {/* Auth Toggle */}
+                            <button
+                                onClick={() => setUseAuth(!useAuth)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${useAuth
+                                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                                        : 'bg-white/5 text-zinc-500 border-white/5 hover:bg-white/10'
+                                    }`}
+                                title={useAuth ? "Sending with Auth Headers" : "Sending Public Request"}
+                            >
+                                {useAuth ? 'Auth: ON' : 'Auth: OFF'}
+                            </button>
+
                             <button
                                 onClick={() => handleCopy(getFullUrl(), 'url')}
                                 className="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors relative"
@@ -276,8 +290,8 @@ export default function ApiPlayground() {
                                     <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Real Response</div>
                                     {response && (
                                         <div className={`text-xs font-mono px-2 py-0.5 rounded ${response.status >= 200 && response.status < 300
-                                                ? 'bg-emerald-500/20 text-emerald-400'
-                                                : 'bg-red-500/20 text-red-400'
+                                            ? 'bg-emerald-500/20 text-emerald-400'
+                                            : 'bg-red-500/20 text-red-400'
                                             }`}>
                                             {response.status} {response.statusText}
                                         </div>

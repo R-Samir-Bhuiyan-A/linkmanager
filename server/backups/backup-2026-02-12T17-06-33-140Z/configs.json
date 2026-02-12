@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "698df8f05019d45dc456470d",
+    "key": "test",
+    "environment": "prod",
+    "projectId": "698df8bcceea56ae6cc87798",
+    "__v": 0,
+    "isEnabled": true,
+    "updatedAt": "2026-02-12T15:59:44.063Z",
+    "value": "https://dlm.lol"
+  },
+  {
+    "_id": "698e02275019d45dc4564717",
+    "environment": "prod",
+    "key": "TEST",
+    "projectId": "698e02190f88071306b443d2",
+    "__v": 0,
+    "isEnabled": true,
+    "updatedAt": "2026-02-12T16:39:03.859Z",
+    "value": "https://dlm.lol"
+  }
+]

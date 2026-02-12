@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Plus, Save, Trash2, Sliders, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { Plus, Save, Trash2, Sliders, ToggleLeft, ToggleRight, X, Upload } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 export default function ConfigTab({ projectId }) {
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [env, setEnv] = useState('prod');
     const [showAdd, setShowAdd] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [newConfig, setNewConfig] = useState({ key: '', value: '' });
+    const [importContent, setImportContent] = useState('');
+    const { success, error } = useNotification();
 
     useEffect(() => {
         fetchConfigs();
@@ -36,8 +40,37 @@ export default function ConfigTab({ projectId }) {
             setNewConfig({ key: '', value: '' });
             setShowAdd(false);
             fetchConfigs();
+            success('Config added');
         } catch (err) {
-            alert(err.response?.data?.message);
+            error(err.response?.data?.message);
+        }
+    };
+
+    const handleImport = async () => {
+        const lines = importContent.split('\n');
+        let count = 0;
+        try {
+            for (const line of lines) {
+                if (!line.trim() || line.startsWith('#')) continue;
+                const [key, ...valParts] = line.split('=');
+                if (!key) continue;
+
+                const value = valParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
+
+                await api.post('/configs', {
+                    projectId,
+                    key: key.trim(),
+                    value: value,
+                    environment: env
+                });
+                count++;
+            }
+            setShowImport(false);
+            setImportContent('');
+            fetchConfigs();
+            success(`Imported ${count} keys to ${env}`);
+        } catch (err) {
+            error('Import failed partially');
         }
     };
 
@@ -76,12 +109,20 @@ export default function ConfigTab({ projectId }) {
                         </button>
                     ))}
                 </div>
-                <button
-                    onClick={() => setShowAdd(true)}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                >
-                    <Plus size={16} /> Add Config
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowImport(true)}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                        <Upload size={16} /> Import .env
+                    </button>
+                    <button
+                        onClick={() => setShowAdd(true)}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                        <Plus size={16} /> Add Config
+                    </button>
+                </div>
             </div>
 
             <div className="grid gap-4">
@@ -93,7 +134,7 @@ export default function ConfigTab({ projectId }) {
                             </div>
                             <div>
                                 <div className="font-mono text-sm font-bold text-zinc-200">{config.key}</div>
-                                <div className="text-xs text-zinc-500 truncate max-w-[200px]">{config.value}</div>
+                                <div className="text-xs text-zinc-500 truncate max-w-[400px]">{config.value}</div>
                             </div>
                         </div>
 
@@ -115,18 +156,19 @@ export default function ConfigTab({ projectId }) {
                 )}
             </div>
 
+            {/* Add Modal */}
             {showAdd && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold">Add Config ({env})</h3>
-                            <button onClick={() => setShowAdd(false)}><X size={18} /></button>
+                            <h3 className="font-bold text-white">Add Config ({env})</h3>
+                            <button onClick={() => setShowAdd(false)} className="text-zinc-400 hover:text-white"><X size={18} /></button>
                         </div>
                         <form onSubmit={handleAdd} className="space-y-4">
                             <div>
                                 <label className="text-xs text-zinc-500 font-bold uppercase">Key</label>
                                 <input
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                                    className="input w-full"
                                     placeholder="API_ENDPOINT"
                                     value={newConfig.key}
                                     onChange={e => setNewConfig({ ...newConfig, key: e.target.value.toUpperCase() })}
@@ -136,17 +178,41 @@ export default function ConfigTab({ projectId }) {
                             <div>
                                 <label className="text-xs text-zinc-500 font-bold uppercase">Value</label>
                                 <input
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                                    className="input w-full"
                                     placeholder="https://api.example.com"
                                     value={newConfig.value}
                                     onChange={e => setNewConfig({ ...newConfig, value: e.target.value })}
                                     required
                                 />
                             </div>
-                            <button type="submit" className="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 rounded-lg">
+                            <button type="submit" className="btn btn-primary w-full">
                                 Save
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Modal */}
+            {showImport && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-white">Import .env to {env}</h3>
+                            <button onClick={() => setShowImport(false)} className="text-zinc-400 hover:text-white"><X size={18} /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-xs text-zinc-400">Paste your .env content below. Lines starting with # are ignored.</p>
+                            <textarea
+                                className="input w-full h-64 font-mono text-xs"
+                                placeholder={`DB_HOST=localhost\nDB_PORT=5432\nAPI_KEY=xyz...`}
+                                value={importContent}
+                                onChange={e => setImportContent(e.target.value)}
+                            />
+                            <button onClick={handleImport} className="btn btn-primary w-full">
+                                Import Keys
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

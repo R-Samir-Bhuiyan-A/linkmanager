@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Terminal, Activity, LogOut, Menu, X, Search, Bell, ChevronRight, Hexagon, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Terminal, Activity, LogOut, Menu, X, Search, Bell, ChevronRight, Hexagon, ShieldAlert, Users, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,6 +14,8 @@ export default function Layout() {
         { icon: Terminal, label: 'API Playground', to: '/api-docs', badge: 'New' },
         { icon: Activity, label: 'System Health', to: '/analytics' },
         { icon: ShieldAlert, label: 'Audit Log', to: '/audit' },
+        { icon: Users, label: 'Team', to: '/team' },
+        { icon: Settings, label: 'Settings', to: '/settings' },
     ];
 
     const handleSignOut = () => {

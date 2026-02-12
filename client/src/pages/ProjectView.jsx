@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Trash2, Shield, Monitor, Layers, Globe, AlertCircle } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Trash2, Shield, Monitor, Layers, Globe, AlertCircle, FileText, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import api from '../api';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfigTab from '../components/project/ConfigTab';
 import AccessTab from '../components/project/AccessTab';
 import InstancesTab from '../components/project/InstancesTab';
 import VersionsTab from '../components/project/VersionsTab';
+import DocsTab from '../components/project/DocsTab';
+import LinksTab from '../components/project/LinksTab';
 import PageTransition from '../components/PageTransition';
-import { motion } from 'framer-motion';
+import { useNotification } from '../context/NotificationContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProjectView() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('config');
     const [isMaintenance, setIsMaintenance] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const { success, error } = useNotification();
 
     useEffect(() => {
         fetchProject();
@@ -28,6 +34,7 @@ export default function ProjectView() {
             setIsMaintenance(res.data.maintenanceMode);
         } catch (err) {
             console.error(err);
+            error('Failed to load project');
         } finally {
             setLoading(false);
         }
@@ -38,8 +45,21 @@ export default function ProjectView() {
             const newVal = !isMaintenance;
             setIsMaintenance(newVal);
             await api.patch(`/projects/${id}`, { maintenanceMode: newVal });
+            success(`Maintenance mode ${newVal ? 'enabled' : 'disabled'}`);
         } catch (err) {
             setIsMaintenance(!isMaintenance);
+            error('Failed to update maintenance mode');
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await api.delete(`/projects/${id}`);
+            success('Project deleted successfully');
+            navigate('/');
+        } catch (err) {
+            error('Failed to delete project');
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -48,6 +68,8 @@ export default function ProjectView() {
 
     const tabs = [
         { id: 'config', label: 'Configuration', icon: Globe },
+        { id: 'docs', label: 'Documentation', icon: FileText },
+        { id: 'links', label: 'Resources', icon: LinkIcon },
         { id: 'versions', label: 'Versions', icon: Layers },
         { id: 'access', label: 'Access Control', icon: Shield },
         { id: 'instances', label: 'Live Instances', icon: Monitor },
@@ -55,6 +77,46 @@ export default function ProjectView() {
 
     return (
         <PageTransition>
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-zinc-900 border border-red-500/20 rounded-2xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="p-3 rounded-full bg-red-500/10 text-red-500">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Delete Project?</h3>
+                            </div>
+                            <p className="text-zinc-400 mb-6">
+                                Are you sure you want to delete <strong className="text-white">{project.name}</strong>?
+                                This action cannot be undone and all associated data will be lost.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="px-4 py-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all shadow-lg shadow-red-600/20 font-bold"
+                                >
+                                    Delete Forever
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div className="flex items-center gap-4">
@@ -86,7 +148,10 @@ export default function ProjectView() {
                             <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${isMaintenance ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
-                    <button className="p-3 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all">
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="p-3 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
+                    >
                         <Trash2 size={20} />
                     </button>
                 </div>
@@ -129,6 +194,8 @@ export default function ProjectView() {
                         className="h-full"
                     >
                         {activeTab === 'config' && <ConfigTab projectId={id} />}
+                        {activeTab === 'docs' && <DocsTab projectId={id} />}
+                        {activeTab === 'links' && <LinksTab projectId={id} />}
                         {activeTab === 'versions' && <VersionsTab projectId={id} />}
                         {activeTab === 'access' && <AccessTab projectId={id} />}
                         {activeTab === 'instances' && <InstancesTab projectId={id} />}

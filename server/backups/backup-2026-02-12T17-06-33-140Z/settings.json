@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "698e05e8657fbd16f05e3910",
+    "smtp": {
+      "host": "",
+      "port": 587,
+      "user": "",
+      "pass": "",
+      "secure": false
+    },
+    "security": {
+      "twoFactorEnabled": false,
+      "ipWhitelist": false,
+      "whitelistedIps": []
+    },
+    "siteName": "Eksses API Manager",
+    "adminEmail": "admin@example.com",
+    "maintenanceMode": false,
+    "updatedAt": "2026-02-12T16:55:04.128Z",
+    "__v": 0
+  }
+]
