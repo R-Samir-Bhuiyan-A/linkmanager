@@ -57,6 +57,9 @@ router.patch('/:id', async (req, res) => {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
 
+        console.log('PATCH Project ID:', req.params.id);
+        console.log('PATCH Body:', JSON.stringify(req.body, null, 2));
+
         if (req.body.name) project.name = req.body.name;
         if (req.body.slug) project.slug = req.body.slug;
         if (req.body.category) project.category = req.body.category;
@@ -65,10 +68,10 @@ router.patch('/:id', async (req, res) => {
         if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
         if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
         if (req.body.clientAuth) {
-            project.clientAuth = {
-                ...project.clientAuth,
-                ...req.body.clientAuth
-            };
+            // Safer update: Explicitly set fields to avoid spreading unknown properties or _id
+            if (!project.clientAuth) project.clientAuth = {};
+            if (req.body.clientAuth.enabled !== undefined) project.clientAuth.enabled = req.body.clientAuth.enabled;
+            if (req.body.clientAuth.publicFields !== undefined) project.clientAuth.publicFields = req.body.clientAuth.publicFields;
         }
 
         // Team Management Routes (Embedded logic for now)
@@ -90,11 +93,14 @@ router.patch('/:id', async (req, res) => {
         project.updatedAt = Date.now();
 
         const updatedProject = await project.save();
+        console.log('Updated Project clientAuth:', JSON.stringify(updatedProject.clientAuth, null, 2));
+
         // Populate user info for response
         await updatedProject.populate('members.userId', 'name email');
 
         res.json(updatedProject);
     } catch (err) {
+        console.error('Project Update Error:', err);
         res.status(400).json({ message: err.message });
     }
 });

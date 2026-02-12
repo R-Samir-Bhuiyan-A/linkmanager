@@ -20,6 +20,10 @@ const ProjectSchema = new mongoose.Schema({
         enabled: { type: Boolean, default: false },
         publicFields: [{ type: String }] // e.g. ['latestVersion', 'updateUrl']
     },
+    members: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        role: { type: String, enum: ['Viewer', 'Editor', 'Admin'], default: 'Viewer' }
+    }],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

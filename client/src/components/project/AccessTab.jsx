@@ -20,7 +20,6 @@ export default function AccessTab({ projectId }) {
     // Auth Config State
     const [authEnabled, setAuthEnabled] = useState(false);
     const [publicFields, setPublicFields] = useState([]);
-    const [exposedFields, setExposedFields] = useState([]); // New state
     const [customField, setCustomField] = useState('');
     const [configs, setConfigs] = useState([]); // Configs state
 
@@ -57,7 +56,6 @@ export default function AccessTab({ projectId }) {
             if (projectRes.data.clientAuth) {
                 setAuthEnabled(projectRes.data.clientAuth.enabled);
                 setPublicFields(projectRes.data.clientAuth.publicFields || []);
-                setExposedFields(projectRes.data.clientAuth.exposedFields || []);
             }
             if (projectRes.data.members) {
                 // Populate might not work on initial fetch unless route updated
@@ -95,8 +93,7 @@ export default function AccessTab({ projectId }) {
             await api.patch(`/projects/${projectId}`, {
                 clientAuth: {
                     enabled: authEnabled,
-                    publicFields: publicFields,
-                    exposedFields: exposedFields
+                    publicFields: publicFields
                 }
             });
             success('Auth settings saved');
