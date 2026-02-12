@@ -173,4 +173,52 @@ router.post('/:id/secret/reset', async (req, res) => {
     }
 });
 
+// SECURE: Generate New API Key
+router.post('/:id/keys', async (req, res) => {
+    try {
+        const { name, scopes } = req.body;
+        const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'samir';
+
+        if (req.body.password !== ADMIN_PASSWORD) {
+            return res.status(401).json({ message: 'Invalid password' });
+        }
+
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        // Generate Key
+        const apiKey = 'sk-' + crypto.randomBytes(24).toString('hex');
+
+        const newKeyEntry = {
+            name,
+            key: apiKey,
+            scopes: scopes || ['read'],
+            createdAt: Date.now()
+        };
+
+        project.apiKeys.push(newKeyEntry);
+        await project.save();
+
+        // Return the saved key (with _id)
+        res.status(201).json(project.apiKeys[project.apiKeys.length - 1]);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// SECURE: Revoke API Key
+router.delete('/:id/keys/:keyId', async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        project.apiKeys = project.apiKeys.filter(k => k._id.toString() !== req.params.keyId);
+        await project.save();
+
+        res.json({ message: 'API Key revoked' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;

@@ -24,6 +24,13 @@ const ProjectSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, enum: ['Viewer', 'Editor', 'Admin'], default: 'Viewer' }
     }],
+    apiKeys: [{
+        name: { type: String, required: true, trim: true },
+        key: { type: String, required: true }, // The secret string (e.g., "sk_...")
+        scopes: [{ type: String, enum: ['read', 'write', 'admin'], default: 'read' }],
+        lastUsed: { type: Date },
+        createdAt: { type: Date, default: Date.now }
+    }],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

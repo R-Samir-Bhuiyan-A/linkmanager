@@ -88,8 +88,22 @@ router.get('/config/:publicId', [tracker], async (req, res) => {
             const clientId = req.headers['x-client-id'];
             const secret = req.headers['x-secret'];
 
-            // Check credentials
-            const isAuthenticated = (clientId === project.publicId) && (secret === project.secretKey);
+            // 1. Check Master Key
+            let isAuthenticated = (clientId === project.publicId) && (secret === project.secretKey);
+            let activeScope = 'admin'; // Master key has full access
+
+            // 2. Check API Keys if not validated yet
+            if (!isAuthenticated && project.apiKeys && project.apiKeys.length > 0) {
+                // Find matching key
+                // Note: In real app, we might hash this. Here we compare direct strings for MVP.
+                const matchedKey = project.apiKeys.find(k => k.key === secret);
+                if (matchedKey && clientId === project.publicId) {
+                    isAuthenticated = true;
+                    // Update last used (async, don't await/block)
+                    matchedKey.lastUsed = Date.now();
+                    project.save({ validateBeforeSave: false }).catch(err => console.error('Failed to update lastUsed', err));
+                }
+            }
 
             if (!isAuthenticated) {
                 // Filter response to ONLY public fields

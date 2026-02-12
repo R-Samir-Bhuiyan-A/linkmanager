@@ -22,6 +22,7 @@ export default function AccessTab({ projectId }) {
     const [publicFields, setPublicFields] = useState([]);
     const [customField, setCustomField] = useState('');
     const [configs, setConfigs] = useState([]); // Configs state
+    const [apiKeys, setApiKeys] = useState([]); // API Keys state
 
     // Secret Management State
     const [secretKey, setSecretKey] = useState(null);
@@ -29,6 +30,11 @@ export default function AccessTab({ projectId }) {
     const [passwordAction, setPasswordAction] = useState(null); // 'reveal' or 'reset'
     const [passwordInput, setPasswordInput] = useState('');
     const [verifying, setVerifying] = useState(false);
+
+    // API Key Creation State
+    const [showKeyModal, setShowKeyModal] = useState(false);
+    const [newKeyName, setNewKeyName] = useState('');
+    const [createdKey, setCreatedKey] = useState(null);
 
     // Team Access State
     const [members, setMembers] = useState([]);
@@ -56,6 +62,9 @@ export default function AccessTab({ projectId }) {
             if (projectRes.data.clientAuth) {
                 setAuthEnabled(projectRes.data.clientAuth.enabled);
                 setPublicFields(projectRes.data.clientAuth.publicFields || []);
+            }
+            if (projectRes.data.apiKeys) {
+                setApiKeys(projectRes.data.apiKeys);
             }
             if (projectRes.data.members) {
                 // Populate might not work on initial fetch unless route updated
@@ -230,6 +239,35 @@ export default function AccessTab({ projectId }) {
         }
     };
 
+    // --- API Key Management ---
+    const handleCreateKey = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await api.post(`/projects/${projectId}/keys`, {
+                name: newKeyName,
+                password: passwordInput // Reusing password input from modal or separate
+            });
+            setApiKeys([...apiKeys, res.data]);
+            setCreatedKey(res.data);
+            setNewKeyName('');
+            setPasswordInput('');
+            success('API Key created');
+        } catch (err) {
+            error(err.response?.data?.message || 'Failed to create key');
+        }
+    };
+
+    const handleRevokeKey = async (keyId) => {
+        if (!confirm('Are you sure? This will immediately block access for this key.')) return;
+        try {
+            await api.delete(`/projects/${projectId}/keys/${keyId}`);
+            setApiKeys(apiKeys.filter(k => k._id !== keyId));
+            success('API Key revoked');
+        } catch (err) {
+            error('Failed to revoke key');
+        }
+    };
+
     if (loading) return <div>Loading...</div>;
 
     const standardFields = [
@@ -388,6 +426,56 @@ export default function AccessTab({ projectId }) {
                         </div>
                     </div>
 
+                    {/* API Keys Management */}
+                    <div className="space-y-4 pt-6 border-t border-white/5">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h4 className="text-sm font-bold text-white">API Keys</h4>
+                                <p className="text-xs text-zinc-500">Create separate keys for different applications.</p>
+                            </div>
+                            <Button size="sm" onClick={() => setShowKeyModal(true)} className="bg-white/5 hover:bg-white/10 text-white border-white/10">
+                                <Plus size={14} className="mr-2" /> Create Key
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {apiKeys.length === 0 ? (
+                                <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-white/5 rounded-lg">
+                                    No additional API keys created.
+                                </div>
+                            ) : (
+                                apiKeys.map(key => (
+                                    <div key={key._id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-violet-500/10 text-violet-400 rounded-lg">
+                                                <Key size={16} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-zinc-200">{key.name}</div>
+                                                <div className="text-xs text-zinc-500 font-mono">
+                                                    Created: {new Date(key.createdAt).toLocaleDateString()}
+                                                    {key.lastUsed && ` • Last used: ${new Date(key.lastUsed).toLocaleDateString()}`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {key.scopes.map(s => (
+                                                <Badge key={s} className="bg-white/5 text-zinc-400 border-white/10 text-[10px] uppercase">{s}</Badge>
+                                            ))}
+                                            <button
+                                                onClick={() => handleRevokeKey(key._id)}
+                                                className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
+                                                title="Revoke Key"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
                     {/* Visibility Control (Standard Fields + Configs) */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
@@ -541,6 +629,73 @@ export default function AccessTab({ projectId }) {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create API Key Modal */}
+            {showKeyModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-white text-lg">Create API Key</h3>
+                            <button onClick={() => { setShowKeyModal(false); setCreatedKey(null); }} className="text-zinc-400 hover:text-white"><X size={20} /></button>
+                        </div>
+
+                        {!createdKey ? (
+                            <form onSubmit={handleCreateKey} className="space-y-6">
+                                <div>
+                                    <label className="text-xs text-zinc-400 font-bold uppercase mb-1.5 block">Key Name</label>
+                                    <input
+                                        className="input w-full bg-black/50"
+                                        placeholder="e.g. Mobile App"
+                                        value={newKeyName}
+                                        onChange={e => setNewKeyName(e.target.value)}
+                                        autoFocus
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-zinc-400 font-bold uppercase mb-1.5 block">Admin Password</label>
+                                    <input
+                                        type="password"
+                                        className="input w-full bg-black/50"
+                                        placeholder="Confirm Identity..."
+                                        value={passwordInput}
+                                        onChange={e => setPasswordInput(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg text-xs text-blue-300">
+                                    New key will have <strong>Read Access</strong> to all enabled fields.
+                                </div>
+                                <div className="flex gap-3">
+                                    <button type="button" onClick={() => setShowKeyModal(false)} className="flex-1 btn bg-white/5 hover:bg-white/10 text-white">Cancel</button>
+                                    <button type="submit" className="flex-1 btn btn-primary bg-violet-600 hover:bg-violet-500">Create</button>
+                                </div>
+                            </form>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-center">
+                                    <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-400">
+                                        <Check size={24} />
+                                    </div>
+                                    <h4 className="text-white font-bold mb-1">Key Created!</h4>
+                                    <p className="text-xs text-zinc-400">Copy this key now. You won't be able to see it again.</p>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs text-zinc-500 font-bold uppercase mb-1.5 block">API Key</label>
+                                    <div className="bg-black/50 border border-white/10 p-3 rounded-lg font-mono text-emerald-400 text-sm break-all select-all">
+                                        {createdKey.key}
+                                    </div>
+                                </div>
+
+                                <Button onClick={() => { setShowKeyModal(false); setCreatedKey(null); }} className="w-full bg-white hover:bg-zinc-200 text-black">
+                                    Done
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
