@@ -26,7 +26,7 @@ router.get('/:id', async (req, res) => {
 
 // CREATE project
 router.post('/', async (req, res) => {
-    const { name, slug } = req.body;
+    const { name, slug, category } = req.body;
 
     // Generate keys
     const publicId = 'pub_' + crypto.randomBytes(8).toString('hex');
@@ -35,6 +35,7 @@ router.post('/', async (req, res) => {
     const project = new Project({
         name,
         slug,
+        category,
         publicId,
         secretKey
     });
@@ -56,6 +57,7 @@ router.patch('/:id', async (req, res) => {
 
         if (req.body.name) project.name = req.body.name;
         if (req.body.slug) project.slug = req.body.slug;
+        if (req.body.category) project.category = req.body.category;
         if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
 
         project.updatedAt = Date.now();

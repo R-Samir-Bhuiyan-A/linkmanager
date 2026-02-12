@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const ProjectSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    category: { type: String, default: 'other' }, // web, android app, desktop app, plugin, etc.
     maintenanceMode: { type: Boolean, default: false },
     publicId: { type: String, required: true, unique: true }, // For clients to identify project without DB ID
     secretKey: { type: String, required: true, select: false }, // For admin actions/updates if needed

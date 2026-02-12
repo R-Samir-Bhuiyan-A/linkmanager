@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Server, AlertTriangle, ArrowRight, Activity, Terminal } from 'lucide-react';
-import api from '../api';
+import axios from 'axios';
+import { Plus, Search, ExternalLink, Activity, Server, Database } from 'lucide-react';
+import CategoryIcon from '../components/CategoryIcon';
 import PageTransition from '../components/PageTransition';
 
 export default function Dashboard() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [newProjectName, setNewProjectName] = useState('');
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    // In a real app, these stats would come from an endpoint like /api/stats
+    const [stats] = useState({ totalRequests: 0, activeInstances: 0, serverStatus: 'Online' });
+    const [search, setSearch] = useState('');
 
     useEffect(() => {
         fetchProjects();
@@ -16,138 +18,133 @@ export default function Dashboard() {
 
     const fetchProjects = async () => {
         try {
-            const res = await api.get('/projects');
+            const token = localStorage.getItem('token');
+            const res = await axios.get('http://localhost:5000/api/projects', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setProjects(res.data);
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error('Failed to fetch projects', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const createProject = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/projects', { name: newProjectName });
-            setNewProjectName('');
-            setShowCreateModal(false);
-            fetchProjects();
-        } catch (err) {
-            alert(err.response?.data?.message || 'Failed to create project');
-        }
-    };
-
-    if (loading) return null; // or a skeleton
+    const filteredProjects = projects.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.slug.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <PageTransition>
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Dashboard</h1>
-                    <p className="text-zinc-400">Manage your connected applications.</p>
-                </div>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all flex items-center gap-2"
-                >
-                    <Plus size={18} strokeWidth={2.5} />
-                    New Project
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                    <Link
-                        key={project._id}
-                        to={`/project/${project._id}`}
-                        className="group relative bg-zinc-900 border border-white/5 rounded-2xl p-6 hover:border-violet-500/30 transition-all hover:shadow-2xl hover:shadow-violet-500/10 hover:-translate-y-1 block overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-4 group-hover:translate-x-0">
-                            <ArrowRight className="text-violet-400" />
-                        </div>
-
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/5 flex items-center justify-center group-hover:from-violet-500/20 group-hover:to-cyan-500/20 transition-all">
-                                <Terminal size={20} className="text-zinc-400 group-hover:text-white transition-colors" />
-                            </div>
-                            {project.maintenanceMode && (
-                                <span className="bg-amber-500/10 text-amber-400 text-[10px] font-bold px-2 py-1 rounded-full border border-amber-500/20 uppercase tracking-wide flex items-center gap-1">
-                                    <AlertTriangle size={10} /> Maintenance
-                                </span>
-                            )}
-                        </div>
-
-                        <h2 className="text-lg font-bold text-zinc-100 mb-1 group-hover:text-violet-300 transition-colors">{project.name}</h2>
-                        <div className="text-xs text-zinc-500 font-mono mb-6">{project.slug}</div>
-
-                        <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
-                            <div>
-                                <div className="text-[10px] uppercase font-bold text-zinc-600 mb-1">Status</div>
-                                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Active
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-[10px] uppercase font-bold text-zinc-600 mb-1">Health</div>
-                                <div className="text-xs text-zinc-300 font-medium">99.9%</div>
-                            </div>
-                        </div>
+            <div className="space-y-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tight text-white mb-2">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">Eksses</span> API Manager
+                        </h1>
+                        <p className="text-zinc-400">Manage your ecosystem.</p>
+                    </div>
+                    <Link to="/project/new" className="btn btn-primary btn-glow">
+                        <Plus size={20} />
+                        New Project
                     </Link>
-                ))}
+                </div>
 
-                {/* Empty State / Add New Placeholder */}
-                {projects.length === 0 && (
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="border-2 border-dashed border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 hover:bg-white/5 transition-all h-[240px]"
-                    >
-                        <Plus size={32} className="mb-2 opacity-50" />
-                        <span className="font-medium">Create your first project</span>
-                    </button>
-                )}
-            </div>
-
-            {/* Create Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-                        <h2 className="text-xl font-bold mb-4">Create Project</h2>
-                        <form onSubmit={createProject} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Project Name</label>
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                                    placeholder="e.g. Mobile App IOS"
-                                    value={newProjectName}
-                                    onChange={(e) => setNewProjectName(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="bg-violet-600 hover:bg-violet-500 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-lg shadow-violet-500/20"
-                                >
-                                    Create
-                                </button>
-                            </div>
-                        </form>
+                {/* Stats Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="glass-card flex items-center justify-between">
+                        <div>
+                            <div className="label">Total Projects</div>
+                            <div className="text-3xl font-bold font-mono text-white">{projects.length}</div>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-400">
+                            <Database size={24} />
+                        </div>
+                    </div>
+                    <div className="glass-card flex items-center justify-between">
+                        <div>
+                            <div className="label">System Status</div>
+                            <div className="text-3xl font-bold font-mono text-emerald-400">Operational</div>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                            <Activity size={24} />
+                        </div>
+                    </div>
+                    <div className="glass-card flex items-center justify-between">
+                        <div>
+                            <div className="label">Active Nodes</div>
+                            <div className="text-3xl font-bold font-mono text-cyan-400">--</div>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                            <Server size={24} />
+                        </div>
                     </div>
                 </div>
-            )}
+
+                {/* Projects Grid */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-white">Projects</h2>
+                        <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search projects..."
+                                className="input w-full pl-10 py-2"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="text-zinc-500 text-center py-12 animate-pulse">Loading ecosystem...</div>
+                    ) : filteredProjects.length === 0 ? (
+                        <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl bg-white/5">
+                            <div className="inline-block p-4 rounded-full bg-white/5 text-zinc-500 mb-4">
+                                <Database size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-1">No Projects Found</h3>
+                            <p className="text-zinc-400 mb-6">Start by creating your first project.</p>
+                            <Link to="/project/new" className="btn btn-secondary inline-flex">
+                                Create Project
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredProjects.map(project => (
+                                <Link to={`/project/${project._id}`} key={project._id} className="glass-card group flex flex-col h-full">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="p-3 rounded-xl bg-white/5 text-violet-400 group-hover:bg-violet-500/20 group-hover:text-violet-300 transition-colors">
+                                            {/* Fallback to 'other' if no category */}
+                                            <CategoryIcon category={project.category || 'other'} className="w-6 h-6" />
+                                        </div>
+                                        <div className={`badge ${project.maintenanceMode ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
+                                            {project.maintenanceMode ? 'Maintenance' : 'Active'}
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-4 flex-1">
+                                        <h3 className="text-lg font-bold text-white group-hover:text-violet-300 transition-colors mb-1">{project.name}</h3>
+                                        <div className="text-xs font-mono text-zinc-500">{project.slug}</div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs text-zinc-500 mt-4 pt-4 border-t border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <span>v{project.latestVersion || '0.0.0'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 group-hover:text-cyan-400 transition-colors">
+                                            Manage <ExternalLink size={12} />
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </PageTransition>
     );
 }
