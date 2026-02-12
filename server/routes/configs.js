@@ -28,6 +28,20 @@ router.post('/', async (req, res) => {
     }
 });
 
+// UPDATE config explicitly (e.g. toggle status)
+router.put('/:id', async (req, res) => {
+    try {
+        const config = await Config.findByIdAndUpdate(
+            req.params.id,
+            { ...req.body, updatedAt: Date.now() },
+            { new: true }
+        );
+        res.json(config);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 // DELETE config
 router.delete('/:id', async (req, res) => {
     try {
