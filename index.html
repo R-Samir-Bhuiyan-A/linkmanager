@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Manager Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Link Manager Dashboard</h1>
+            <div class="version-info">
+                <span id="version">v1.0.0</span>
+                <span id="last-updated">Updated: 2026-02-12</span>
+            </div>
+        </header>
+
+        <!-- Top Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <input type="text" id="search-box" placeholder="Search links...">
+            </div>
+            
+            <div class="control-group">
+                <label for="env-selector">Environment:</label>
+                <select id="env-selector">
+                    <option value="prod">Production</option>
+                    <option value="staging">Staging</option>
+                    <option value="dev">Development</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="category-filter">Category:</label>
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="show-disabled-toggle" checked>
+                    Show Disabled Items
+                </label>
+            </div>
+        </div>
+
+        <!-- Demo Mode Warning -->
+        <div class="demo-mode-warning">
+            <div class="warning-content">
+                <strong>Demo Mode (No Write)</strong> - Changes are temporary. 
+                <button id="show-patch-btn">Show JSON Patch</button>
+            </div>
+        </div>
+
+        <!-- JSON Patch Panel -->
+        <div id="patch-panel" class="patch-panel hidden">
+            <div class="panel-header">
+                <h3>JSON Patch (Copy & Paste to links.json)</h3>
+                <button id="close-patch-btn" class="close-btn">×</button>
+            </div>
+            <textarea id="patch-textarea" readonly></textarea>
+            <button id="copy-patch-btn" class="btn">Copy Patch</button>
+        </div>
+
+        <!-- Validation Messages -->
+        <div id="validation-messages" class="validation-messages"></div>
+
+        <!-- Export Buttons -->
+        <div class="export-buttons">
+            <button id="raw-json-btn" class="btn">Open Raw JSON</button>
+            <button id="copy-kv-btn" class="btn">Copy Resolved KV</button>
+        </div>
+
+        <!-- Links Container -->
+        <div id="links-container" class="links-container">
+            <!-- Categories and links will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
