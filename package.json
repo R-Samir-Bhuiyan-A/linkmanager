@@ -1,0 +1,26 @@
+{
+  "name": "linkmanager",
+  "version": "1.0.0",
+  "description": "A central dashboard to manage your applications, API configurations, and access control.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/R-Samir-Bhuiyan-A/linkmanager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/R-Samir-Bhuiyan-A/linkmanager/issues"
+  },
+  "homepage": "https://github.com/R-Samir-Bhuiyan-A/linkmanager#readme",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
