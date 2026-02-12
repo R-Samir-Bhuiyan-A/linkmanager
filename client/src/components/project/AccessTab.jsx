@@ -43,6 +43,9 @@ export default function AccessTab({ projectId }) {
     const [selectedUser, setSelectedUser] = useState('');
     const [selectedRole, setSelectedRole] = useState('Viewer');
 
+    // UI State
+    const [activeTab, setActiveTab] = useState('team'); // 'team', 'api', 'security'
+
     useEffect(() => {
         fetchData();
         fetchUsers();
@@ -278,196 +281,106 @@ export default function AccessTab({ projectId }) {
         { key: 'message', label: 'Message' }
     ];
 
+    const TabButton = ({ id, icon: Icon, label }) => (
+        <button
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === id
+                ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+        >
+            <Icon size={16} />
+            {label}
+        </button>
+    );
+
     return (
-        <div className="space-y-8">
-            {/* Team Access Section */}
-            <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                            <Users size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg text-white">Team Access</h3>
-                            <p className="text-xs text-zinc-500">Manage who can view or edit this project.</p>
-                        </div>
-                    </div>
-                    <Button size="sm" onClick={() => setShowAddMember(true)} className="bg-white/5 hover:bg-white/10 text-white border-white/10">
-                        <UserPlus size={16} className="mr-2" /> Add Member
-                    </Button>
-                </div>
-
-                <div className="p-6 space-y-4">
-                    {showAddMember && (
-                        <div className="bg-black/30 p-4 rounded-xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-2">
-                            <h4 className="text-sm font-bold text-white mb-3">Add Team Member</h4>
-                            <div className="flex gap-4">
-                                <select
-                                    className="input flex-1"
-                                    value={selectedUser}
-                                    onChange={e => setSelectedUser(e.target.value)}
-                                >
-                                    <option value="">Select User...</option>
-                                    {availableUsers.map(u => (
-                                        <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
-                                    ))}
-                                </select>
-                                <select
-                                    className="input w-32"
-                                    value={selectedRole}
-                                    onChange={e => setSelectedRole(e.target.value)}
-                                >
-                                    <option value="Viewer">Viewer</option>
-                                    <option value="Editor">Editor</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
-                                <Button onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-500 text-white">Add</Button>
-                                <Button variant="ghost" onClick={() => setShowAddMember(false)}>Cancel</Button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-2">
-                        {members.length === 0 ? (
-                            <div className="text-center py-8 text-zinc-500 border border-dashed border-white/5 rounded-xl text-sm">
-                                No specific members added. Everyone with global access can view.
-                            </div>
-                        ) : (
-                            members.map((member, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold text-white">
-                                            {/* Initials logic if populated, else 'U' */}
-                                            U
-                                        </div>
-                                        <div>
-                                            {/* Since we populate, we check if member.userId is obj or id */}
-                                            <div className="text-sm font-bold text-white">
-                                                {member.userId?.name || member.userId}
-                                            </div>
-                                            <div className="text-xs text-zinc-500">
-                                                {member.userId?.email || 'Unknown Email'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge className="bg-white/5 text-zinc-300 border-white/10">{member.role}</Badge>
-                                        <button
-                                            onClick={() => handleRemoveMember(member.userId._id || member.userId)}
-                                            className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+        <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-4">
+                <TabButton id="team" icon={Users} label="Team Access" />
+                <TabButton id="api" icon={Shield} label="API Access" />
+                <TabButton id="security" icon={ShieldAlert} label="Security Rules" />
             </div>
 
-            {/* Client Binding Authentication Section */}
-            <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden relative">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${authEnabled ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                            {authEnabled ? <Lock size={20} /> : <Unlock size={20} />}
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg text-white">Client Authentication</h3>
-                            <p className="text-xs text-zinc-500">Require Client ID & Secret for API access</p>
-                        </div>
-                    </div>
-                    <div
-                        onClick={() => setAuthEnabled(!authEnabled)}
-                        className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${authEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
-                    >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${authEnabled ? 'right-1' : 'left-1'}`} />
-                    </div>
-                </div>
-
-                <div className="p-6 space-y-8">
-                    {/* ID & Secret */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-black/40 p-4 rounded-xl border border-white/5">
-                            <div className="text-xs font-bold text-zinc-500 uppercase mb-2">Public ID (Client ID)</div>
-                            <div className="font-mono text-zinc-200 break-all select-all flex items-center gap-2">
-                                <Shield size={14} className="text-violet-400" />
-                                {project?.publicId}
+            {/* Team Access Section */}
+            {activeTab === 'team' && (
+                <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                                <Users size={20} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-white">Team Access</h3>
+                                <p className="text-xs text-zinc-500">Manage who can view or edit this project.</p>
                             </div>
                         </div>
+                        <Button size="sm" onClick={() => setShowAddMember(true)} className="bg-white/5 hover:bg-white/10 text-white border-white/10">
+                            <UserPlus size={16} className="mr-2" /> Add Member
+                        </Button>
+                    </div>
 
-                        <div className="bg-black/40 p-4 rounded-xl border border-white/5">
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="text-xs font-bold text-zinc-500 uppercase">Secret Key</div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => initiateSecretAction('reveal')}
-                                        className="text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded text-zinc-400 transition-colors"
+                    <div className="p-6 space-y-4">
+                        {showAddMember && (
+                            <div className="bg-black/30 p-4 rounded-xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-2">
+                                <h4 className="text-sm font-bold text-white mb-3">Add Team Member</h4>
+                                <div className="flex gap-4">
+                                    <select
+                                        className="input flex-1"
+                                        value={selectedUser}
+                                        onChange={e => setSelectedUser(e.target.value)}
                                     >
-                                        Reveal
-                                    </button>
-                                    <button
-                                        onClick={() => initiateSecretAction('reset')}
-                                        className="text-[10px] bg-white/5 hover:bg-red-500/20 px-2 py-1 rounded text-zinc-400 hover:text-red-400 transition-colors"
+                                        <option value="">Select User...</option>
+                                        {availableUsers.map(u => (
+                                            <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        className="input w-32"
+                                        value={selectedRole}
+                                        onChange={e => setSelectedRole(e.target.value)}
                                     >
-                                        Reset
-                                    </button>
+                                        <option value="Viewer">Viewer</option>
+                                        <option value="Editor">Editor</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                    <Button onClick={handleAddMember} className="bg-blue-600 hover:bg-blue-500 text-white">Add</Button>
+                                    <Button variant="ghost" onClick={() => setShowAddMember(false)}>Cancel</Button>
                                 </div>
                             </div>
-                            <div className="font-mono text-zinc-200 text-sm flex items-center gap-2">
-                                <Key size={14} className={secretKey ? 'text-emerald-400' : 'text-zinc-600'} />
-                                {secretKey ? (
-                                    <span className="text-emerald-400 break-all">{secretKey}</span>
-                                ) : (
-                                    <span className="text-zinc-600">****************************</span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* API Keys Management */}
-                    <div className="space-y-4 pt-6 border-t border-white/5">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h4 className="text-sm font-bold text-white">API Keys</h4>
-                                <p className="text-xs text-zinc-500">Create separate keys for different applications.</p>
-                            </div>
-                            <Button size="sm" onClick={() => setShowKeyModal(true)} className="bg-white/5 hover:bg-white/10 text-white border-white/10">
-                                <Plus size={14} className="mr-2" /> Create Key
-                            </Button>
-                        </div>
+                        )}
 
                         <div className="space-y-2">
-                            {apiKeys.length === 0 ? (
-                                <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-white/5 rounded-lg">
-                                    No additional API keys created.
+                            {members.length === 0 ? (
+                                <div className="text-center py-8 text-zinc-500 border border-dashed border-white/5 rounded-xl text-sm">
+                                    No specific members added. Everyone with global access can view.
                                 </div>
                             ) : (
-                                apiKeys.map(key => (
-                                    <div key={key._id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                members.map((member, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-violet-500/10 text-violet-400 rounded-lg">
-                                                <Key size={16} />
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold text-white">
+                                                {/* Initials logic if populated, else 'U' */}
+                                                U
                                             </div>
                                             <div>
-                                                <div className="text-sm font-bold text-zinc-200">{key.name}</div>
-                                                <div className="text-xs text-zinc-500 font-mono">
-                                                    Created: {new Date(key.createdAt).toLocaleDateString()}
-                                                    {key.lastUsed && ` • Last used: ${new Date(key.lastUsed).toLocaleDateString()}`}
+                                                {/* Since we populate, we check if member.userId is obj or id */}
+                                                <div className="text-sm font-bold text-white">
+                                                    {member.userId?.name || member.userId}
+                                                </div>
+                                                <div className="text-xs text-zinc-500">
+                                                    {member.userId?.email || 'Unknown Email'}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            {key.scopes.map(s => (
-                                                <Badge key={s} className="bg-white/5 text-zinc-400 border-white/10 text-[10px] uppercase">{s}</Badge>
-                                            ))}
+                                            <Badge className="bg-white/5 text-zinc-300 border-white/10">{member.role}</Badge>
                                             <button
-                                                onClick={() => handleRevokeKey(key._id)}
-                                                className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
-                                                title="Revoke Key"
+                                                onClick={() => handleRemoveMember(member.userId._id || member.userId)}
+                                                className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
                                             >
-                                                <Trash2 size={14} />
+                                                <X size={16} />
                                             </button>
                                         </div>
                                     </div>
@@ -475,116 +388,232 @@ export default function AccessTab({ projectId }) {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Visibility Control (Standard Fields + Configs) */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                            <Eye size={14} className="text-violet-400" />
-                            <h4 className="text-sm font-bold text-white">Data Visibility Control</h4>
-                            <span className="text-xs text-zinc-500 font-normal ml-auto text-right">
-                                <b>OFF:</b> Auth Required (Private)<br />
-                                <b>ON:</b> Public (Visible to Everyone)
-                            </span>
+            {/* Client Binding Authentication Section */}
+            {activeTab === 'api' && (
+                <div className="bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden relative animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${authEnabled ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                {authEnabled ? <Lock size={20} /> : <Unlock size={20} />}
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-white">Client Authentication</h3>
+                                <p className="text-xs text-zinc-500">Require Client ID & Secret for API access</p>
+                            </div>
                         </div>
-
-                        {/* Standard Fields */}
-                        <div className="space-y-2">
-                            <div className="text-xs font-bold text-zinc-500 uppercase px-2">Standard Attributes</div>
-                            {standardFields.map(field => renderToggleRow(field.label, field.key))}
-                        </div>
-
-                        {/* Configs */}
-                        <div className="space-y-2">
-                            <div className="text-xs font-bold text-zinc-500 uppercase px-2 mt-4">Project Configurations</div>
-                            {configs.length === 0 ? (
-                                <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-white/5 rounded-lg">
-                                    No configurations found. Add them in the Configuration tab.
-                                </div>
-                            ) : (
-                                configs.map(config => renderToggleRow(config.key, config.key, config.value))
-                            )}
+                        <div
+                            onClick={() => setAuthEnabled(!authEnabled)}
+                            className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${authEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${authEnabled ? 'right-1' : 'left-1'}`} />
                         </div>
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-white/5">
-                        <Button onClick={handleSaveAuth} className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20">
-                            <Check size={16} className="mr-2" /> Save Configuration
-                        </Button>
+                    <div className="p-6 space-y-8">
+                        {/* ID & Secret */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-black/40 p-4 rounded-xl border border-white/5">
+                                <div className="text-xs font-bold text-zinc-500 uppercase mb-2">Public ID (Client ID)</div>
+                                <div className="font-mono text-zinc-200 break-all select-all flex items-center gap-2">
+                                    <Shield size={14} className="text-violet-400" />
+                                    {project?.publicId}
+                                </div>
+                            </div>
+
+                            <div className="bg-black/40 p-4 rounded-xl border border-white/5">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="text-xs font-bold text-zinc-500 uppercase">Secret Key</div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => initiateSecretAction('reveal')}
+                                            className="text-[10px] bg-white/5 hover:bg-white/10 px-2 py-1 rounded text-zinc-400 transition-colors"
+                                        >
+                                            Reveal
+                                        </button>
+                                        <button
+                                            onClick={() => initiateSecretAction('reset')}
+                                            className="text-[10px] bg-white/5 hover:bg-red-500/20 px-2 py-1 rounded text-zinc-400 hover:text-red-400 transition-colors"
+                                        >
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="font-mono text-zinc-200 text-sm flex items-center gap-2">
+                                    <Key size={14} className={secretKey ? 'text-emerald-400' : 'text-zinc-600'} />
+                                    {secretKey ? (
+                                        <span className="text-emerald-400 break-all">{secretKey}</span>
+                                    ) : (
+                                        <span className="text-zinc-600">****************************</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* API Keys Management */}
+                        <div className="space-y-4 pt-6 border-t border-white/5">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-sm font-bold text-white">API Keys</h4>
+                                    <p className="text-xs text-zinc-500">Create separate keys for different applications.</p>
+                                </div>
+                                <Button size="sm" onClick={() => setShowKeyModal(true)} className="bg-white/5 hover:bg-white/10 text-white border-white/10">
+                                    <Plus size={14} className="mr-2" /> Create Key
+                                </Button>
+                            </div>
+
+                            <div className="space-y-2">
+                                {apiKeys.length === 0 ? (
+                                    <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-white/5 rounded-lg">
+                                        No additional API keys created.
+                                    </div>
+                                ) : (
+                                    apiKeys.map(key => (
+                                        <div key={key._id} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-violet-500/10 text-violet-400 rounded-lg">
+                                                    <Key size={16} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-zinc-200">{key.name}</div>
+                                                    <div className="text-xs text-zinc-500 font-mono">
+                                                        Created: {new Date(key.createdAt).toLocaleDateString()}
+                                                        {key.lastUsed && ` • Last used: ${new Date(key.lastUsed).toLocaleDateString()}`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                {key.scopes.map(s => (
+                                                    <Badge key={s} className="bg-white/5 text-zinc-400 border-white/10 text-[10px] uppercase">{s}</Badge>
+                                                ))}
+                                                <button
+                                                    onClick={() => handleRevokeKey(key._id)}
+                                                    className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
+                                                    title="Revoke Key"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Visibility Control (Standard Fields + Configs) */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Eye size={14} className="text-violet-400" />
+                                <h4 className="text-sm font-bold text-white">Data Visibility Control</h4>
+                                <span className="text-xs text-zinc-500 font-normal ml-auto text-right">
+                                    <b>OFF:</b> Auth Required (Private)<br />
+                                    <b>ON:</b> Public (Visible to Everyone)
+                                </span>
+                            </div>
+
+                            {/* Standard Fields */}
+                            <div className="space-y-2">
+                                <div className="text-xs font-bold text-zinc-500 uppercase px-2">Standard Attributes</div>
+                                {standardFields.map(field => renderToggleRow(field.label, field.key))}
+                            </div>
+
+                            {/* Configs */}
+                            <div className="space-y-2">
+                                <div className="text-xs font-bold text-zinc-500 uppercase px-2 mt-4">Project Configurations</div>
+                                {configs.length === 0 ? (
+                                    <div className="text-center py-4 text-xs text-zinc-500 border border-dashed border-white/5 rounded-lg">
+                                        No configurations found. Add them in the Configuration tab.
+                                    </div>
+                                ) : (
+                                    configs.map(config => renderToggleRow(config.key, config.key, config.value))
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-4 border-t border-white/5">
+                            <Button onClick={handleSaveAuth} className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20">
+                                <Check size={16} className="mr-2" /> Save Configuration
+                            </Button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Access Rules Section */}
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg text-white px-1">Block List & Access Rules</h3>
-                <Card>
-                    <CardContent className="pt-6">
-                        <form onSubmit={handleAddRule} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <div>
-                                <label className="label">Block Type</label>
-                                <select className="input w-full" value={type} onChange={e => setType(e.target.value)}>
-                                    <option value="version">Version</option>
-                                    <option value="ip">IP Address</option>
-                                    <option value="instanceId">Instance ID</option>
-                                    <option value="hardwareId">Hardware ID</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label">Value</label>
-                                <input
-                                    className="input w-full"
-                                    placeholder={type === 'version' ? '1.0.0' : type === 'ip' ? '192.168.1.1' : 'ID...'}
-                                    value={value}
-                                    onChange={e => setValue(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label className="label">Reason</label>
-                                <select className="input w-full" value={reason} onChange={e => setReason(e.target.value)}>
-                                    <option value="update_required">Update Required</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="abuse">Abuse/Spam</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <Button type="submit" variant="danger" className="text-white">
-                                <ShieldAlert size={16} /> Block
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+            {activeTab === 'security' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <h3 className="font-bold text-lg text-white px-1">Block List & Access Rules</h3>
+                    <Card>
+                        <CardContent className="pt-6">
+                            <form onSubmit={handleAddRule} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label className="label">Block Type</label>
+                                    <select className="input w-full" value={type} onChange={e => setType(e.target.value)}>
+                                        <option value="version">Version</option>
+                                        <option value="ip">IP Address</option>
+                                        <option value="instanceId">Instance ID</option>
+                                        <option value="hardwareId">Hardware ID</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label">Value</label>
+                                    <input
+                                        className="input w-full"
+                                        placeholder={type === 'version' ? '1.0.0' : type === 'ip' ? '192.168.1.1' : 'ID...'}
+                                        value={value}
+                                        onChange={e => setValue(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label">Reason</label>
+                                    <select className="input w-full" value={reason} onChange={e => setReason(e.target.value)}>
+                                        <option value="update_required">Update Required</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="abuse">Abuse/Spam</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <Button type="submit" variant="danger" className="text-white">
+                                    <ShieldAlert size={16} /> Block
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
 
-                <div className="space-y-2">
-                    {rules.length === 0 ? (
-                        <div className="text-center py-10 text-zinc-500 border border-dashed border-white/5 rounded-xl">
-                            No rules defined.
-                        </div>
-                    ) : (
-                        rules.map(rule => (
-                            <div key={rule._id} className="flex items-center justify-between p-3 bg-zinc-900 border border-white/5 rounded-lg group hover:border-violet-500/20 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
-                                        <ShieldAlert size={18} />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-sm uppercase flex items-center gap-2 text-zinc-300">
-                                            {rule.type}
-                                            <Badge variant="danger" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/20">BLOCKED</Badge>
-                                        </div>
-                                        <div className="text-sm font-mono text-zinc-400">{rule.value}</div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-xs text-zinc-500 italic hidden md:block">Reason: {rule.reason}</div>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(rule._id)} className="text-zinc-500 hover:text-red-400">
-                                        <Trash2 size={16} />
-                                    </Button>
-                                </div>
+                    <div className="space-y-2">
+                        {rules.length === 0 ? (
+                            <div className="text-center py-10 text-zinc-500 border border-dashed border-white/5 rounded-xl">
+                                No rules defined.
                             </div>
-                        ))
-                    )}
+                        ) : (
+                            rules.map(rule => (
+                                <div key={rule._id} className="flex items-center justify-between p-3 bg-zinc-900 border border-white/5 rounded-lg group hover:border-violet-500/20 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
+                                            <ShieldAlert size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-sm uppercase flex items-center gap-2 text-zinc-300">
+                                                {rule.type}
+                                                <Badge variant="danger" className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/20">BLOCKED</Badge>
+                                            </div>
+                                            <div className="text-sm font-mono text-zinc-400">{rule.value}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-xs text-zinc-500 italic hidden md:block">Reason: {rule.reason}</div>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(rule._id)} className="text-zinc-500 hover:text-red-400">
+                                            <Trash2 size={16} />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Password Verification Modal */}
             {showPasswordModal && (
