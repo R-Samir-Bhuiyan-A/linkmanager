@@ -53,7 +53,7 @@ export default function AuditLog() {
                 </button>
             </div>
 
-            <div className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden backdrop-blur-sm">
+            <div className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-x-auto backdrop-blur-sm">
                 {logs.length === 0 ? (
                     <div className="p-12 text-center text-zinc-500">No audit logs found.</div>
                 ) : (

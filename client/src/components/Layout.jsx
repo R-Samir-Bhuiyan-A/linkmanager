@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Terminal, Activity, LogOut, Menu, X, Search, Bell, ChevronRight, Hexagon, ShieldAlert, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Terminal, Activity, LogOut, Menu, X, Search, Bell, ChevronRight, Hexagon, ShieldAlert, Users, Settings, Book } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,7 @@ export default function Layout() {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/' },
         { icon: Terminal, label: 'API Playground', to: '/api-docs', badge: 'New' },
+        { icon: Book, label: 'API Reference', to: '/api-reference' },
         { icon: Activity, label: 'System Health', to: '/analytics' },
         { icon: ShieldAlert, label: 'Audit Log', to: '/audit' },
         { icon: Users, label: 'Team', to: '/team' },
@@ -27,9 +28,11 @@ export default function Layout() {
         <div className="flex min-h-screen bg-[var(--color-bg)] text-zinc-50 font-sans selection:bg-violet-500/30 overflow-hidden">
             {/* Mobile Header */}
             <div className="md:hidden fixed inset-x-0 top-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/5 px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Hexagon className="text-violet-500 fill-violet-500/20" size={24} />
-                    <span className="font-bold text-xl tracking-tight text-white">Eksses</span>
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-violet-500/20 relative overflow-hidden">
+                        <Hexagon className="text-white relative z-10" size={18} />
+                    </div>
+                    <span className="font-bold text-lg tracking-tight text-white">Eksses</span>
                 </div>
                 <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-zinc-400 hover:text-white transition-colors">
                     {isMobileMenuOpen ? <X /> : <Menu />}
@@ -51,12 +54,19 @@ export default function Layout() {
                                 to={item.to}
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className={({ isActive }) => cn(
-                                    "flex items-center gap-3 p-4 rounded-xl transition-all border border-transparent",
-                                    isActive ? "bg-white/5 border-white/10 text-violet-400" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                    "flex items-center justify-between px-4 py-3 rounded-xl transition-all relative overflow-hidden border border-transparent",
+                                    isActive ? "bg-white/5 border-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
                                 )}
                             >
-                                <item.icon size={20} />
-                                <span className="font-medium">{item.label}</span>
+                                {({ isActive }) => (
+                                    <>
+                                        <div className="flex items-center gap-3">
+                                            <item.icon size={20} className={isActive ? "text-violet-400" : ""} />
+                                            <span className="font-medium">{item.label}</span>
+                                        </div>
+                                        {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-violet-500 rounded-r-full" />}
+                                    </>
+                                )}
                             </NavLink>
                         ))}
                     </motion.div>

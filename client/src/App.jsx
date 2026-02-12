@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Analytics from './pages/Analytics';
 import AuditLog from './pages/AuditLog';
 import ApiPlayground from './pages/ApiPlayground';
+import ApiDocs from './pages/ApiDocs';
 import Team from './pages/Team';
 import Settings from './pages/Settings';
 
@@ -34,6 +35,7 @@ function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="audit" element={<AuditLog />} />
             <Route path="api-docs" element={<ApiPlayground />} />
+            <Route path="api-reference" element={<ApiDocs />} />
             <Route path="team" element={<Team />} />
             <Route path="settings" element={<Settings />} />
           </Route>

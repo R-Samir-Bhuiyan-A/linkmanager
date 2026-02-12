@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Shield, Monitor, Layers, Globe, AlertCircle, FileText, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Trash2, Shield, Monitor, Layers, Globe, AlertCircle, FileText, Link as LinkIcon, AlertTriangle, Key } from 'lucide-react';
 import api from '../api';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfigTab from '../components/project/ConfigTab';
@@ -9,6 +9,7 @@ import InstancesTab from '../components/project/InstancesTab';
 import VersionsTab from '../components/project/VersionsTab';
 import DocsTab from '../components/project/DocsTab';
 import LinksTab from '../components/project/LinksTab';
+import LicensesTab from '../components/project/LicensesTab';
 import PageTransition from '../components/PageTransition';
 import { useNotification } from '../context/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,6 +73,7 @@ export default function ProjectView() {
         { id: 'links', label: 'Resources', icon: LinkIcon },
         { id: 'versions', label: 'Versions', icon: Layers },
         { id: 'access', label: 'Access Control', icon: Shield },
+        { id: 'licenses', label: 'Licenses', icon: Key },
         { id: 'instances', label: 'Live Instances', icon: Monitor },
     ];
 
@@ -198,6 +200,7 @@ export default function ProjectView() {
                         {activeTab === 'links' && <LinksTab projectId={id} />}
                         {activeTab === 'versions' && <VersionsTab projectId={id} />}
                         {activeTab === 'access' && <AccessTab projectId={id} />}
+                        {activeTab === 'licenses' && <LicensesTab project={project} />}
                         {activeTab === 'instances' && <InstancesTab projectId={id} />}
                     </motion.div>
                 </div>

@@ -37,6 +37,7 @@ const authRouter = require('./routes/auth');
 const analyticsRouter = require('./routes/analytics');
 const teamRouter = require('./routes/team');
 const settingsRouter = require('./routes/settings');
+const licensesRouter = require('./routes/licenses');
 
 app.use('/api/projects', projectsRouter); // TODO: Protect this
 app.use('/api/configs', configsRouter);   // TODO: Protect this
@@ -46,6 +47,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/team', teamRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/licenses', licensesRouter);
 app.use('/v1', clientRouter); // Public
 
 // Start Server

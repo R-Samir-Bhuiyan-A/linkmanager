@@ -128,9 +128,9 @@ export default function AccessTab({ projectId }) {
 
         return (
             <div key={key} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isPublic ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-black/20 border-white/5 opacity-80'}`}>
-                <div className="flex-1">
-                    <div className="text-sm font-bold text-zinc-200">{label}</div>
-                    <div className="text-[10px] font-mono text-zinc-500">{subLabel || key}</div>
+                <div className="flex-1 min-w-0 pr-3">
+                    <div className="text-sm font-bold text-zinc-200 truncate">{label}</div>
+                    <div className="text-[10px] font-mono text-zinc-500 truncate">{subLabel || key}</div>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -364,12 +364,12 @@ export default function AccessTab({ projectId }) {
                                                 {/* Initials logic if populated, else 'U' */}
                                                 U
                                             </div>
-                                            <div>
+                                            <div className="min-w-0">
                                                 {/* Since we populate, we check if member.userId is obj or id */}
-                                                <div className="text-sm font-bold text-white">
+                                                <div className="text-sm font-bold text-white truncate">
                                                     {member.userId?.name || member.userId}
                                                 </div>
-                                                <div className="text-xs text-zinc-500">
+                                                <div className="text-xs text-zinc-500 truncate">
                                                     {member.userId?.email || 'Unknown Email'}
                                                 </div>
                                             </div>
@@ -476,9 +476,9 @@ export default function AccessTab({ projectId }) {
                                                 <div className="p-2 bg-violet-500/10 text-violet-400 rounded-lg">
                                                     <Key size={16} />
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-zinc-200">{key.name}</div>
-                                                    <div className="text-xs text-zinc-500 font-mono">
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-bold text-zinc-200 truncate">{key.name}</div>
+                                                    <div className="text-xs text-zinc-500 font-mono truncate">
                                                         Created: {new Date(key.createdAt).toLocaleDateString()}
                                                         {key.lastUsed && ` • Last used: ${new Date(key.lastUsed).toLocaleDateString()}`}
                                                     </div>
