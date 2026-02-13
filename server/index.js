@@ -8,6 +8,9 @@ const morgan = require('morgan');
 const app = express();
 const PORT = process.env.PORT || 6997;
 
+// Enable trust proxy for Vercel
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(cors());
