@@ -51,6 +51,10 @@ app.use('/api/licenses', licensesRouter);
 app.use('/v1', clientRouter); // Public
 
 // Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;

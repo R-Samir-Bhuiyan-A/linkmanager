@@ -17,6 +17,10 @@ class BackupService {
     }
 
     async init() {
+        if (process.env.VERCEL) {
+            console.log('BackupService: Vercel environment detected. Automatic backups disabled.');
+            return;
+        }
         const settings = await Settings.findOne();
         if (settings && settings.backups.enabled) {
             this.schedule(settings.backups.frequency);
@@ -44,6 +48,9 @@ class BackupService {
     }
 
     async performBackup() {
+        if (process.env.VERCEL) {
+            return { success: false, error: 'Backups are disabled in Vercel environment.' };
+        }
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupPath = path.join(BACKUP_DIR, `backup-${timestamp}`);
 
