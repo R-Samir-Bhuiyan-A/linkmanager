@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Play, Copy, Check, ChevronRight, Server, Database, Code, FileJson, Layers } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 
@@ -57,10 +57,7 @@ export default function ApiPlayground() {
 
     const fetchProjects = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/projects', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/projects');
             setProjects(res.data);
             if (res.data.length > 0) setSelectedProject(res.data[0]);
         } catch (error) {
@@ -76,7 +73,7 @@ export default function ApiPlayground() {
 
     const getFullUrl = () => {
         if (!selectedProject) return '';
-        let url = `http://localhost:5000${selectedEndpoint.path.replace(':publicId', selectedProject.publicId)}`;
+        let url = `/v1${selectedEndpoint.path.replace('/v1', '').replace(':publicId', selectedProject.publicId)}`;
 
         if (selectedEndpoint.method === 'GET') {
             const query = new URLSearchParams();
@@ -118,9 +115,9 @@ export default function ApiPlayground() {
             }
 
             if (selectedEndpoint.method === 'GET') {
-                res = await axios.get(url, config);
+                res = await api.get(url, config);
             } else {
-                res = await axios.post(url, JSON.parse(body), config);
+                res = await api.post(url, JSON.parse(body), config);
             }
 
             setResponse({

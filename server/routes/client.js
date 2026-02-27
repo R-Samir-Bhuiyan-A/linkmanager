@@ -157,7 +157,7 @@ router.post('/heartbeat/:publicId', [tracker], async (req, res) => {
                 lastHeartbeat: Date.now(),
                 $inc: { requestCount: 1 }
             },
-            { upsert: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         res.json({ status: 'ok' });

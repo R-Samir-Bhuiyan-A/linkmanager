@@ -3,8 +3,8 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_change_me';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'samir';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'samir';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 
 // POST /login
 router.post('/login', (req, res) => {

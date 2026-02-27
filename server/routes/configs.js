@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
         const config = await Config.findOneAndUpdate(
             { projectId, key, environment },
             { value, isEnabled: req.body.isEnabled !== undefined ? req.body.isEnabled : true, updatedAt: Date.now() },
-            { new: true, upsert: true } // Create if not exists
+            { returnDocument: 'after', upsert: true } // Create if not exists
         );
         res.json(config);
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { Plus, Search, ExternalLink, Activity, Server, Database } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import PageTransition from '../components/PageTransition';
@@ -18,10 +18,7 @@ export default function Dashboard() {
 
     const fetchProjects = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/projects', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/projects');
             setProjects(res.data);
         } catch (error) {
             console.error('Failed to fetch projects', error);
