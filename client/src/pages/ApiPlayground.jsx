@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
+import axios from 'axios';
 import { Play, Copy, Check, ChevronRight, Server, Database, Code, FileJson, Layers } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 
@@ -115,9 +116,9 @@ export default function ApiPlayground() {
             }
 
             if (selectedEndpoint.method === 'GET') {
-                res = await api.get(url, config);
+                res = await axios.get(url, config);
             } else {
-                res = await api.post(url, JSON.parse(body), config);
+                res = await axios.post(url, JSON.parse(body), config);
             }
 
             setResponse({
