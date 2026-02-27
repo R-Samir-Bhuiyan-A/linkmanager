@@ -21,7 +21,7 @@ export default function LicensesTab({ project }) {
 
     const fetchLicenses = async () => {
         try {
-            const res = await api.get(`/api/licenses/project/${project._id}`);
+            const res = await api.get(`/licenses/project/${project._id}`);
             setLicenses(res.data);
         } catch (err) {
             console.error(err);
@@ -36,7 +36,7 @@ export default function LicensesTab({ project }) {
                 ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000)
                 : null;
 
-            await api.post('/api/licenses/generate', {
+            await api.post('/licenses/generate', {
                 projectId: project._id,
                 holderName,
                 email,
@@ -56,7 +56,7 @@ export default function LicensesTab({ project }) {
     const handleRevoke = async (id) => {
         if (!confirm('Are you sure you want to revoke this license? It cannot be reactivated.')) return;
         try {
-            await api.patch(`/api/licenses/${id}/revoke`);
+            await api.patch(`/licenses/${id}/revoke`);
             success('License revoked');
             fetchLicenses();
         } catch (err) {
@@ -67,7 +67,7 @@ export default function LicensesTab({ project }) {
     const handleResetHwid = async (id) => {
         if (!confirm('Reset Hardware ID lock? The next device to use this key will become the new locked device.')) return;
         try {
-            await api.patch(`/api/licenses/${id}/reset-hwid`);
+            await api.patch(`/licenses/${id}/reset-hwid`);
             success('Hardware ID reset');
             fetchLicenses();
         } catch (err) {
