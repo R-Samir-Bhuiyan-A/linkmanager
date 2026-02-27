@@ -20,7 +20,7 @@ The user requested the removal of Vercel-specific deployment constraints to prep
 
 ### 3. Default Credentials
 
-- Updated the fallback fallback administrator credentials in `server/routes/auth.js` and `.env.example` from `admin:samir` to the standard `admin:admin` to ensure smooth local onboarding.
+- Updated the fallback administrator credentials in `server/routes/auth.js` and `.env.example` from `admin:samir` to the standard `admin:admin` to ensure smooth local onboarding.
 
 ## 🐛 Bug Fixes & Code Standardization
 
