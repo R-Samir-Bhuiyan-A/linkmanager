@@ -4,7 +4,14 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  envDir: '../', // Load .env from parent directory
   server: {
-    port: 6996
+    port: 6996,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:6997',
+        changeOrigin: true
+      }
+    }
   }
 })

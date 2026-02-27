@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import CategoryIcon from '../components/CategoryIcon';
 import PageTransition from '../components/PageTransition';
@@ -32,9 +32,7 @@ export default function ProjectCreate() {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:5000/api/projects', formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.post('/projects', formData);
             navigate(`/project/${res.data._id}`);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create project');

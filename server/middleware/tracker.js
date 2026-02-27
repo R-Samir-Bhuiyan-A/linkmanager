@@ -10,7 +10,7 @@ const tracker = async (req, res, next) => {
             await DailyStats.findOneAndUpdate(
                 { date: today },
                 { $inc: { requests: 1 } },
-                { upsert: true, new: true }
+                { upsert: true, returnDocument: 'after' }
             );
         } catch (err) {
             console.error('Failed to log request stats:', err);
