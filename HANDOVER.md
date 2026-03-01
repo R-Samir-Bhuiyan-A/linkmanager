@@ -60,6 +60,12 @@ The following console messages were observed during development but determined t
    - **Diagnosis**: Nodemon restarts the backend server immediately upon saving a file. If the frontend performs a hot-reload fetch a millisecond before the backend fully boots, an `ECONNREFUSED` or `socket hang up` occurs, resulting in a temporary `500 Internal Server Error`. This resolves inherently upon manual refresh or the subsequent automatic poll.
 3. **React DevTools Notification**
    - **Diagnosis**: Standard development environment suggestion logged by `react-dom`; safely ignorable.
+4. **Temporary Password Does Not Work**
+   - **Diagnosis**: The temporary password provided during new account/team member creation does not work or authenticate properly. This is a known bug to be addressed next.
+
+## 📝 Todo List
+
+- [ ] Implement HTML mail templates for email dispatching (e.g., password resets, team invitations).
 
 ---
 

@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { requireAuth: auth } = require('../middleware/auth');
 const requireRole = require('../middleware/rbac');
+const { sendEmail } = require('../services/emailService');
 
 // GET all users (Owner/Admin only)
 router.get('/', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
@@ -43,6 +44,20 @@ router.post('/invite', auth, requireRole(['Owner', 'Admin']), async (req, res) =
             link: '/team'
         }));
         await Notification.insertMany(notifications);
+
+        // Send Invitation Email
+        try {
+            const loginUrl = `${process.env.FRONTEND_URL || req.headers.origin}/login`;
+            await sendEmail({
+                to: newUser.email,
+                subject: 'You have been invited to OT-Dashboard',
+                text: `Hello ${newUser.name},\n\nYou have been invited to join OT-Dashboard as an ${newUser.role}.\n\nYour temporary password is: ${password}\n\nPlease log in at ${loginUrl} and change your password immediately.\n\nWelcome aboard!`
+            });
+        } catch (emailErr) {
+            console.error('Failed to send invitation email:', emailErr);
+            // We usually do not fail the overall request if strictly the email fails,
+            // but log the error appropriately.
+        }
 
         res.status(201).json(newUser);
     } catch (err) {

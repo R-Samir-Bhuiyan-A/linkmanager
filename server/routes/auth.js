@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../services/emailService');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
@@ -103,22 +103,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     }
 });
 
-// Setup Nodemailer transporter from Settings
-async function getTransporter() {
-    const settings = await Settings.findOne();
-    if (!settings || !settings.smtp || !settings.smtp.host) {
-        throw new Error('SMTP not configured in settings');
-    }
-    return nodemailer.createTransport({
-        host: settings.smtp.host,
-        port: settings.smtp.port,
-        secure: settings.smtp.secure,
-        auth: {
-            user: settings.smtp.user,
-            pass: settings.smtp.pass
-        }
-    });
-}
+// Replaced with emailService
 
 // POST /forgot-password
 router.post('/forgot-password', async (req, res) => {
@@ -135,11 +120,9 @@ router.post('/forgot-password', async (req, res) => {
         await user.save();
 
         try {
-            const transporter = await getTransporter();
             const resetUrl = `${process.env.FRONTEND_URL || req.headers.origin}/reset-password?token=${token}`;
             
-            await transporter.sendMail({
-                from: process.env.EMAIL_FROM || '"OT-Dashboard" <noreply@ot-dashboard.local>',
+            await sendEmail({
                 to: user.email,
                 subject: 'Password Reset Request',
                 text: `You have requested a password reset. Please click on the following link or paste it into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`
