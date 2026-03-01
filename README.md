@@ -1,4 +1,4 @@
-# LinkManager - Project Control Plane
+# OT-Dashboard - Project Control Plane
 
 A central dashboard to manage your applications, API configurations, and access control.
 
@@ -15,12 +15,14 @@ A central dashboard to manage your applications, API configurations, and access 
 ## Setup
 
 1. **Backend**
+
    ```bash
    cd server
    npm install
    # Create .env file with MONGODB_URI if needed (defaults to local)
    npm start
    ```
+
    Server runs on http://localhost:5000
 
 2. **Frontend**
@@ -42,13 +44,16 @@ A central dashboard to manage your applications, API configurations, and access 
 ## API Endpoints
 
 ### Public
+
 - `GET /v1/config/:publicId?env=prod&version=1.0.0`: Fetch config for a project.
 - `POST /v1/heartbeat/:publicId`: Report instance activity.
 
 ### Management (Internal)
+
 - `GET /api/projects`: List projects.
 - `POST /api/projects`: Create project.
 - ...and more.
 
 ## Tech Stack
+
 - Express, Mongoose, React, Tailwind, Lucide Icons.

@@ -39,7 +39,7 @@ export default function Dashboard() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h1 className="text-4xl font-black tracking-tight text-white mb-2">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">Eksses</span> API Manager
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">OT-Dashboard</span> API Manager
                         </h1>
                         <p className="text-zinc-400">Manage your ecosystem.</p>
                     </div>

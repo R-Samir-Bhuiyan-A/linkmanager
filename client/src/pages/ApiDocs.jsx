@@ -6,6 +6,10 @@ import { useNotification } from '../context/NotificationContext';
 export default function ApiDocs() {
     const [copiedId, setCopiedId] = useState(null);
     const { success } = useNotification();
+    
+    // Get the base API URL dynamically depending on where the app is hosted
+    // Get the base API URL dynamically depending on where the app is hosted
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
 
     const copyToClipboard = (text, id) => {
         navigator.clipboard.writeText(text);
@@ -34,7 +38,7 @@ export default function ApiDocs() {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "username": "admin"
 }`,
-                    example: `curl -X POST http://localhost:5000/api/auth/login \\
+                    example: `curl -X POST ${baseUrl}/api/auth/login \\
   -H "Content-Type: application/json" \\
   -d '{"username":"admin","password":"your_password"}'`
                 },
@@ -49,12 +53,12 @@ x-secret: sk_abc123... (Master Key or API Key)`,
 # API Key: Access based on key permissions
 # No Auth: Only public fields returned`,
                     example: `# Using Master Key (Secret Key)
-curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
+curl -X GET "${baseUrl}/v1/config/pub_546e65fb3f5473d4" \\
   -H "x-client-id: pub_546e65fb3f5473d4" \\
   -H "x-secret: sk_abc123..."
 
 # Using API Key
-curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
+curl -X GET "${baseUrl}/v1/config/pub_546e65fb3f5473d4" \\
   -H "x-client-id: pub_546e65fb3f5473d4" \\
   -H "x-secret: key_xyz789..."`
                 }
@@ -82,7 +86,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
     "maintenanceMode": false
   }
 ]`,
-                    example: `curl -X GET http://localhost:5000/api/projects`
+                    example: `curl -X GET ${baseUrl}/api/projects`
                 },
                 {
                     method: 'POST',
@@ -99,7 +103,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
   "publicId": "pub_abc123...",
   "secretKey": "sk_xyz789..."
 }`,
-                    example: `curl -X POST http://localhost:5000/api/projects \\
+                    example: `curl -X POST ${baseUrl}/api/projects \\
   -H "Content-Type: application/json" \\
   -d '{"name":"My App","slug":"my-app","category":"web"}'`
                 },
@@ -111,7 +115,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
   "maintenanceMode": true,
   "latestVersion": "2.0.0"
 }`,
-                    example: `curl -X PATCH http://localhost:5000/api/projects/PROJECT_ID \\
+                    example: `curl -X PATCH ${baseUrl}/api/projects/PROJECT_ID \\
   -H "Content-Type: application/json" \\
   -d '{"maintenanceMode":true}'`
                 },
@@ -119,7 +123,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
                     method: 'DELETE',
                     path: '/api/projects/:id',
                     description: 'Delete a project',
-                    example: `curl -X DELETE http://localhost:5000/api/projects/PROJECT_ID`
+                    example: `curl -X DELETE ${baseUrl}/api/projects/PROJECT_ID`
                 }
             ]
         },
@@ -143,7 +147,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
     "isEnabled": true
   }
 ]`,
-                    example: `curl -X GET http://localhost:5000/api/configs/project/PROJECT_ID`
+                    example: `curl -X GET ${baseUrl}/api/configs/project/PROJECT_ID`
                 },
                 {
                     method: 'POST',
@@ -155,7 +159,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
   "value": "100",
   "environment": "prod"
 }`,
-                    example: `curl -X POST http://localhost:5000/api/configs \\
+                    example: `curl -X POST ${baseUrl}/api/configs \\
   -H "Content-Type: application/json" \\
   -d '{"projectId":"...","key":"max_connections","value":"100"}'`
                 }
@@ -184,7 +188,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
   "status": "active",
   "hardwareId": null
 }`,
-                    example: `curl -X POST http://localhost:5000/api/licenses/generate \\
+                    example: `curl -X POST ${baseUrl}/api/licenses/generate \\
   -H "Content-Type: application/json" \\
   -d '{"projectId":"...","holderName":"John Doe","email":"john@example.com","type":"lifetime"}'`
                 },
@@ -192,19 +196,19 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
                     method: 'GET',
                     path: '/api/licenses/project/:projectId',
                     description: 'List all licenses for a project',
-                    example: `curl -X GET http://localhost:5000/api/licenses/project/PROJECT_ID`
+                    example: `curl -X GET ${baseUrl}/api/licenses/project/PROJECT_ID`
                 },
                 {
                     method: 'PATCH',
                     path: '/api/licenses/:id/revoke',
                     description: 'Revoke a license',
-                    example: `curl -X PATCH http://localhost:5000/api/licenses/LICENSE_ID/revoke`
+                    example: `curl -X PATCH ${baseUrl}/api/licenses/LICENSE_ID/revoke`
                 },
                 {
                     method: 'PATCH',
                     path: '/api/licenses/:id/reset-hwid',
                     description: 'Reset hardware ID lock',
-                    example: `curl -X PATCH http://localhost:5000/api/licenses/LICENSE_ID/reset-hwid`
+                    example: `curl -X PATCH ${baseUrl}/api/licenses/LICENSE_ID/reset-hwid`
                 }
             ]
         },
@@ -233,10 +237,10 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4" \\
   }
 }`,
                     example: `# Without Authentication (public fields only)
-curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4?env=prod&version=1.0.0"
+curl -X GET "${baseUrl}/v1/config/pub_546e65fb3f5473d4?env=prod&version=1.0.0"
 
 # With Master Key (full access)
-curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4?env=prod&version=1.0.0" \\
+curl -X GET "${baseUrl}/v1/config/pub_546e65fb3f5473d4?env=prod&version=1.0.0" \\
   -H "x-client-id: pub_546e65fb3f5473d4" \\
   -H "x-secret: sk_abc123..."`
                 },
@@ -251,7 +255,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4?env=prod&versi
   "version": "1.0.0"
 }`,
                     response: `{ "status": "ok" }`,
-                    example: `curl -X POST http://localhost:5000/v1/heartbeat/pub_546e65fb3f5473d4 \\
+                    example: `curl -X POST ${baseUrl}/v1/heartbeat/pub_546e65fb3f5473d4 \\
   -H "Content-Type: application/json" \\
   -d '{"instanceId":"server-1","version":"1.0.0"}'`
                 },
@@ -272,7 +276,7 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4?env=prod&versi
     "type": "lifetime"
   }
 }`,
-                    example: `curl -X POST http://localhost:5000/v1/validate-license \\
+                    example: `curl -X POST ${baseUrl}/v1/validate-license \\
   -H "Content-Type: application/json" \\
   -d '{"key":"PRO-...","hwid":"PC-1","publicId":"pub_..."}'`
                 }
@@ -294,13 +298,13 @@ curl -X GET "http://localhost:5000/v1/config/pub_546e65fb3f5473d4?env=prod&versi
   "activeProjects": 12,
   "totalInstances": 45
 }`,
-                    example: `curl -X GET http://localhost:5000/api/analytics/overview`
+                    example: `curl -X GET ${baseUrl}/api/analytics/overview`
                 },
                 {
                     method: 'GET',
                     path: '/api/analytics/audit',
                     description: 'Get audit log entries',
-                    example: `curl -X GET http://localhost:5000/api/analytics/audit`
+                    example: `curl -X GET ${baseUrl}/api/analytics/audit`
                 }
             ]
         }

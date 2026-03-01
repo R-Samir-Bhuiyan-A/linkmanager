@@ -9,7 +9,7 @@ export default function Team() {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isInviting, setIsInviting] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Viewer' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'View-only', password: '' });
     const { success, error } = useNotification();
 
     useEffect(() => {
@@ -33,8 +33,8 @@ export default function Team() {
             const res = await api.post('/team/invite', newUser);
             setMembers([res.data, ...members]);
             setIsInviting(false);
-            setNewUser({ name: '', email: '', role: 'Viewer' });
-            success('User invited successfully');
+            setNewUser({ name: '', email: '', role: 'View-only', password: '' });
+            success('User created successfully');
         } catch (err) {
             error(err.response?.data?.message || 'Failed to invite user');
         }
@@ -102,22 +102,34 @@ export default function Team() {
                                     />
                                 </div>
                                 <div>
+                                    <label className="label">Temporary Password</label>
+                                    <input
+                                        type="text"
+                                        value={newUser.password}
+                                        onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                                        className="input w-full"
+                                        placeholder="Min 6 characters"
+                                    />
+                                </div>
+                                <div>
                                     <label className="label">Role</label>
                                     <select
                                         value={newUser.role}
                                         onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                                         className="input w-full"
                                     >
-                                        <option value="Viewer">Viewer (Read-only)</option>
-                                        <option value="Editor">Editor (Can manage projects)</option>
-                                        <option value="Owner">Owner (Full access)</option>
+                                        <option value="View-only">View-only (Read-only assigned projects)</option>
+                                        <option value="Manage-only">Manage-only (Manage assigned projects)</option>
+                                        <option value="Moderator">Moderator (Manage all projects)</option>
+                                        <option value="Admin">Admin (Access all projects & team)</option>
+                                        <option value="Owner">Owner (Full system access)</option>
                                     </select>
                                 </div>
                                 <button
                                     onClick={handleInvite}
                                     className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold mt-4"
                                 >
-                                    Send Invite
+                                    Create User
                                 </button>
                             </div>
                         </motion.div>
@@ -153,9 +165,10 @@ export default function Team() {
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${member.role === 'Owner' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                                            member.role === 'Editor' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
-                                                'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${member.role === 'Owner' || member.role === 'Admin' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                                            member.role === 'Moderator' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                            member.role === 'Manage-only' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                            'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
                                         }`}>
                                         <Shield size={10} />
                                         {member.role}

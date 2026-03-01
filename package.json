@@ -1,7 +1,7 @@
 {
-  "name": "linkmanager",
+  "name": "ot-dashboard",
   "version": "1.0.0",
-  "description": "A central dashboard to manage your applications, API configurations, and access control.",
+  "description": "OT-Dashboard: A central dashboard to manage your applications, API configurations, and access control.",
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",

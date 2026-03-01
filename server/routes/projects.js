@@ -2,11 +2,23 @@ const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
 const crypto = require('crypto');
+const { requireAuth: auth } = require('../middleware/auth');
+const requireRole = require('../middleware/rbac');
+const AuditLog = require('../models/AuditLog');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 
-// GET all projects
-router.get('/', async (req, res) => {
+// GET all projects (Filtered by Role)
+router.get('/', auth, async (req, res) => {
     try {
-        const projects = await Project.find().select('+secretKey').sort({ updatedAt: -1 });
+        let query = {};
+
+        // Manage-only and View-only can only see assigned projects
+        if (['Manage-only', 'View-only'].includes(req.user.role)) {
+            query.assignedUsers = req.user.id;
+        }
+
+        const projects = await Project.find(query).select('+secretKey').sort({ updatedAt: -1 });
         res.json(projects);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -14,19 +26,27 @@ router.get('/', async (req, res) => {
 });
 
 // GET single project
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        // Check assigned access
+        if (['Manage-only', 'View-only'].includes(req.user.role)) {
+            if (!project.assignedUsers.includes(req.user.id)) {
+                return res.status(403).json({ message: 'Access denied: You are not assigned to this project' });
+            }
+        }
+
         res.json(project);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// CREATE project
-router.post('/', async (req, res) => {
-    const { name, slug, category, description, links } = req.body;
+// CREATE project (Admin/Owner only)
+router.post('/', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
+    const { name, slug, category, description, links, assignedUsers } = req.body;
 
     // Generate keys
     const publicId = 'pub_' + crypto.randomBytes(8).toString('hex');
@@ -39,23 +59,41 @@ router.post('/', async (req, res) => {
         description,
         links,
         publicId,
-        secretKey
+        secretKey,
+        assignedUsers: assignedUsers || []
     });
 
     try {
         const newProject = await project.save();
-        // Return secret key only once on creation
+        
+        // Notify Owners and Admins about the new project
+        const admins = await User.find({ role: { $in: ['Owner', 'Admin'] } });
+        const notifications = admins.map(admin => ({
+            user: admin._id,
+            title: 'New Project Created',
+            message: `${newProject.name} was successfully created.`,
+            type: 'success',
+            link: `/project/${newProject._id}`
+        }));
+        await Notification.insertMany(notifications);
+
         res.status(201).json({ ...newProject.toObject(), secretKey });
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
-// UPDATE project
-router.patch('/:id', async (req, res) => {
+// UPDATE project (Owner/Admin or Manage-only if assigned)
+router.patch('/:id', auth, requireRole(['Owner', 'Admin', 'Moderator', 'Manage-only']), async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        if (req.user.role === 'Manage-only') {
+            if (!project.assignedUsers.includes(req.user.id)) {
+                return res.status(403).json({ message: 'Access denied: Not assigned to manage this project' });
+            }
+        }
 
         console.log('PATCH Project ID:', req.params.id);
         console.log('PATCH Body:', JSON.stringify(req.body, null, 2));
@@ -66,37 +104,33 @@ router.patch('/:id', async (req, res) => {
         if (req.body.description !== undefined) project.description = req.body.description;
         if (req.body.links) project.links = req.body.links;
         if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
-        if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
+        if (req.body.customHeaders !== undefined) project.customHeaders = req.body.customHeaders;
+        
+        // Owner/Admin only fields
+        if (['Owner', 'Admin'].includes(req.user.role)) {
+            if (req.body.assignedUsers !== undefined) project.assignedUsers = req.body.assignedUsers;
+        }
+
         if (req.body.clientAuth) {
-            // Safer update: Explicitly set fields to avoid spreading unknown properties or _id
             if (!project.clientAuth) project.clientAuth = {};
             if (req.body.clientAuth.enabled !== undefined) project.clientAuth.enabled = req.body.clientAuth.enabled;
             if (req.body.clientAuth.publicFields !== undefined) project.clientAuth.publicFields = req.body.clientAuth.publicFields;
         }
 
-        // Team Management Routes (Embedded logic for now)
-        if (req.body.addMember) {
-            const { userId, role } = req.body.addMember;
-            // Check if user exists
-            // For MVP, just push to array if not already there
-            const exists = project.members.find(m => m.userId.toString() === userId);
-            if (!exists) {
-                project.members.push({ userId, role });
-            }
-        }
-
-        if (req.body.removeMember) {
-            const { userId } = req.body.removeMember;
-            project.members = project.members.filter(m => m.userId.toString() !== userId);
-        }
-
         project.updatedAt = Date.now();
-
         const updatedProject = await project.save();
-        console.log('Updated Project clientAuth:', JSON.stringify(updatedProject.clientAuth, null, 2));
 
-        // Populate user info for response
-        await updatedProject.populate('members.userId', 'name email');
+        // Notify assigned users about project update
+        if (project.assignedUsers && project.assignedUsers.length > 0) {
+            const notifications = project.assignedUsers.map(userId => ({
+                user: userId,
+                title: 'Project Updated',
+                message: `${project.name} has been modified.`,
+                type: 'info',
+                link: `/project/${project._id}`
+            }));
+            await Notification.insertMany(notifications);
+        }
 
         res.json(updatedProject);
     } catch (err) {
@@ -105,10 +139,9 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
-const AuditLog = require('../models/AuditLog');
 
-// DELETE project
-router.delete('/:id', async (req, res) => {
+// DELETE project (Owner/Admin only)
+router.delete('/:id', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
@@ -117,7 +150,7 @@ router.delete('/:id', async (req, res) => {
 
         // Log the action
         await new AuditLog({
-            user: 'Admin', // TODO: Get from auth token
+            user: req.user.email,
             action: 'Deleted Project',
             target: project.name,
             iconType: 'danger'

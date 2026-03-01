@@ -9,9 +9,29 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
+    const [isResetMode, setIsResetMode] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccessMsg('');
+
+        if (isResetMode) {
+            try {
+                const res = await api.post('/auth/forgot-password', { email: username });
+                setSuccessMsg(res.data.message);
+                // Optionally switch back after a delay
+                setTimeout(() => setIsResetMode(false), 5000);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to send reset email');
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
         e.preventDefault();
         setLoading(true);
         setError('');
@@ -44,38 +64,55 @@ export default function Login() {
                     <div className="mx-auto w-16 h-16 bg-gradient-to-br from-violet-600 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-violet-500/30">
                         <Sparkles className="text-white" size={32} />
                     </div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent mb-2">Welcome Back</h1>
-                    <p className="text-zinc-500">Sign in to Nexus Control Plane</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent mb-2">
+                        {isResetMode ? 'Reset Password' : 'Welcome Back'}
+                    </h1>
+                    <p className="text-zinc-500">
+                        {isResetMode ? 'Enter your email to receive a reset link' : 'Sign in to OT-Dashboard Control Plane'}
+                    </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Username</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">
+                            {isResetMode ? 'Email Address' : 'Email or Username'}
+                        </label>
                         <div className="relative group">
                             <User className="absolute left-4 top-3.5 text-zinc-500 group-focus-within:text-violet-400 transition-colors" size={18} />
                             <input
-                                type="text"
+                                type={isResetMode ? "email" : "text"}
                                 className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all shadow-inner"
-                                placeholder="Enter username"
+                                placeholder={isResetMode ? "admin@example.com" : "Enter email"}
                                 value={username}
                                 onChange={e => setUsername(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Password</label>
-                        <div className="relative group">
-                            <Lock className="absolute left-4 top-3.5 text-zinc-500 group-focus-within:text-violet-400 transition-colors" size={18} />
-                            <input
-                                type="password"
-                                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all shadow-inner"
-                                placeholder="Enter password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                            />
+                    {!isResetMode && (
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Password</label>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsResetMode(true); setError(''); setSuccessMsg(''); }}
+                                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-3.5 text-zinc-500 group-focus-within:text-violet-400 transition-colors" size={18} />
+                                <input
+                                    type="password"
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all shadow-inner"
+                                    placeholder="Enter password"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {error && (
                         <motion.div
@@ -87,13 +124,35 @@ export default function Login() {
                         </motion.div>
                     )}
 
+                    {successMsg && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg text-center"
+                        >
+                            {successMsg}
+                        </motion.div>
+                    )}
+
                     <button
                         type="submit"
                         disabled={loading}
                         className="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : 'Sign In'}
+                        {loading ? <Loader2 className="animate-spin" /> : (isResetMode ? 'Send Reset Link' : 'Sign In')}
                     </button>
+
+                    {isResetMode && (
+                        <div className="text-center mt-4">
+                            <button
+                                type="button"
+                                onClick={() => { setIsResetMode(false); setError(''); setSuccessMsg(''); }}
+                                className="text-xs text-zinc-500 hover:text-white transition-colors"
+                            >
+                                Back to Sign In
+                            </button>
+                        </div>
+                    )}
 
                     <div className="text-center">
                         <span className="text-xs text-zinc-600">Default: samir / samir</span>

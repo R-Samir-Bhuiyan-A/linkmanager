@@ -10,6 +10,7 @@ import VersionsTab from '../components/project/VersionsTab';
 import DocsTab from '../components/project/DocsTab';
 import LinksTab from '../components/project/LinksTab';
 import LicensesTab from '../components/project/LicensesTab';
+import ProjectAuditTab from '../components/project/ProjectAuditTab';
 import PageTransition from '../components/PageTransition';
 import { useNotification } from '../context/NotificationContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,6 +76,7 @@ export default function ProjectView() {
         { id: 'access', label: 'Access Control', icon: Shield },
         { id: 'licenses', label: 'Licenses', icon: Key },
         { id: 'instances', label: 'Live Instances', icon: Monitor },
+        { id: 'audit', label: 'Audit Log', icon: FileText },
     ];
 
     return (
@@ -202,6 +204,7 @@ export default function ProjectView() {
                         {activeTab === 'access' && <AccessTab projectId={id} />}
                         {activeTab === 'licenses' && <LicensesTab project={project} />}
                         {activeTab === 'instances' && <InstancesTab projectId={id} />}
+                        {activeTab === 'audit' && <ProjectAuditTab projectId={id} />}
                     </motion.div>
                 </div>
             </div>

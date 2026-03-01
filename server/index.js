@@ -11,13 +11,20 @@ const PORT = process.env.PORT || 6997;
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin images
 app.use(morgan("dev"));
 app.use(require("./middleware/tracker"));
+app.use(require("./middleware/apiLogger"));
+app.use("/uploads", express.static("uploads"));
 
 // Database Connection
+if (!process.env.MONGODB_URI) {
+  console.error("FATAL ERROR: MONGODB_URI is not defined.");
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/linkmanager")
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected");
     require("./services/BackupService").init();
@@ -26,7 +33,7 @@ mongoose
 
 // Routes
 app.get("/", (req, res) => {
-  res.send("LinkManager API is running");
+  res.send("OT-Dashboard API is running");
 });
 
 const projectsRouter = require("./routes/projects");
@@ -39,8 +46,11 @@ const analyticsRouter = require("./routes/analytics");
 const teamRouter = require("./routes/team");
 const settingsRouter = require("./routes/settings");
 const licensesRouter = require("./routes/licenses");
+const auditRouter = require("./routes/audit");
+const notificationsRouter = require("./routes/notifications");
 
 app.use("/api/projects", projectsRouter); // TODO: Protect this
+app.use("/api/audit", auditRouter); // TODO: Protect this
 app.use("/api/configs", configsRouter); // TODO: Protect this
 app.use("/api/access", accessRouter); // TODO: Protect this
 app.use("/api/instances", instancesRouter); // TODO: Protect this
@@ -49,6 +59,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/team", teamRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/licenses", licensesRouter);
+app.use("/api/notifications", notificationsRouter);
 app.use("/v1", clientRouter); // Public
 
 // Start Server

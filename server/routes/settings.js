@@ -1,6 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Settings = require('../models/Settings');
+
+// Setup Multer Storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = './uploads';
+        if (!fs.existsSync(dir)){
+            fs.mkdirSync(dir);
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, req.body.type + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
 
 // Helper to get singleton settings
 async function getSettings() {
@@ -62,6 +81,56 @@ router.patch('/', async (req, res) => {
     }
 });
 
+// POST upload branding (logo or favicon)
+router.post('/upload', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        
+        const type = req.body.type; // 'logo' or 'favicon'
+        if (!['logo', 'favicon'].includes(type)) {
+            return res.status(400).json({ message: 'Invalid image type' });
+        }
+
+        const settings = await getSettings();
+        const fileUrl = `/uploads/${req.file.filename}`;
+        
+        if (type === 'logo') {
+            settings.logoUrl = fileUrl;
+        } else {
+            settings.faviconUrl = fileUrl;
+        }
+
+        await settings.save();
+        res.json({ message: 'Upload successful', url: fileUrl });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Remove branding
+router.delete('/branding/:type', async (req, res) => {
+    try {
+        const type = req.params.type;
+        if (!['logo', 'favicon'].includes(type)) {
+            return res.status(400).json({ message: 'Invalid type' });
+        }
+
+        const settings = await getSettings();
+        if (type === 'logo') {
+            settings.logoUrl = '';
+        } else {
+            settings.faviconUrl = '';
+        }
+
+        await settings.save();
+        res.json({ message: 'Removed successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // GET /api/settings/backups
 router.get('/backups', (req, res) => {
     try {
@@ -103,11 +172,6 @@ router.get('/backups/:name/download', async (req, res) => {
             if (err) {
                 console.error('Download error:', err);
             }
-            // Cleanup zip file after download (optional, but good practice here)
-            // For now, we keep it or rely on cron cleanup. 
-            // Better yet, check if zip already exists.
-
-            // fs.unlinkSync(zipPath); // Cleanup
         });
 
     } catch (err) {

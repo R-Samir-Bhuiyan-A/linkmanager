@@ -11,6 +11,8 @@ const ProjectSchema = new mongoose.Schema({
         icon: { type: String, default: 'link' } // globe, github, trello, etc.
     }],
     maintenanceMode: { type: Boolean, default: false },
+    customHeaders: { type: Object, default: {} },
+    assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     publicId: { type: String, required: true, unique: true }, // For clients to identify project without DB ID
     secretKey: { type: String, required: true, select: false }, // For admin actions/updates if needed
     latestVersion: { type: String, default: '1.0.0' },

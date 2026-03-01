@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 
 const SettingsSchema = new mongoose.Schema({
-    siteName: { type: String, default: 'Eksses API Manager' },
+    siteName: { type: String, default: 'OT-Dashboard' },
+    logoUrl: { type: String, default: '' },
+    faviconUrl: { type: String, default: '' },
     adminEmail: { type: String, default: 'admin@example.com' },
     maintenanceMode: { type: Boolean, default: false },
     smtp: {

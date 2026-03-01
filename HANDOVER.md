@@ -1,6 +1,6 @@
-# LinkManager Handover Document
+# OT-Dashboard Handover Document
 
-This document serves as a comprehensive handover of all architectural changes, bug fixes, and configuration updates performed on the **Eksses LinkManager** repository during this development session.
+This document serves as a comprehensive handover of all architectural changes, bug fixes, and configuration updates performed on the **OT-Dashboard** repository during this development session.
 
 ## 🏗️ Architectural & Configuration Changes
 
@@ -52,7 +52,7 @@ The Node backend console was spamming deprecation warnings regarding the usage o
 
 ## ⚠️ Known Bugs & Non-Issues
 
-The following console messages were observed during development but determined to be harmless or external to the LinkManager codebase:
+The following console messages were observed during development but determined to be harmless or external to the OT-Dashboard codebase:
 
 1. **Bootstrap Autofill Overlay (`Uncaught TypeError: Failed to construct 'URL'`)**
    - **Diagnosis**: This error originates entirely from a third-party browser extension (specifically related to password/autofill overlays injecting iframes into the React DOM) and does not indicate failing React logic.
