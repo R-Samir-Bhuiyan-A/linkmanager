@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, Plus, Trash2, Lock, Unlock, Eye, Key, RefreshCw, X, Check, UserPlus, Users } from 'lucide-react';
+import { Shield, ShieldAlert, Plus, Trash2, Lock, Unlock, Eye, Key, RefreshCw, X, Check, UserPlus, Users, Copy } from 'lucide-react';
 import api from '../../api';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -79,6 +79,12 @@ export default function AccessTab({ projectId }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const copyToClipboard = (text, label = 'Copied to clipboard') => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        success(label);
     };
 
     const fetchUsers = async () => {
@@ -417,9 +423,18 @@ export default function AccessTab({ projectId }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-black/40 p-4 rounded-xl border border-white/5">
                                 <div className="text-xs font-bold text-zinc-500 uppercase mb-2">Public ID (Client ID)</div>
-                                <div className="font-mono text-zinc-200 break-all select-all flex items-center gap-2">
-                                    <Shield size={14} className="text-violet-400" />
-                                    {project?.publicId}
+                                <div className="font-mono text-zinc-200 break-all select-all flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Shield size={14} className="text-violet-400" />
+                                        {project?.publicId}
+                                    </div>
+                                    <button
+                                        onClick={() => copyToClipboard(project?.publicId, 'Client ID Copied!')}
+                                        className="text-zinc-500 hover:text-white transition-colors"
+                                        title="Copy Client ID"
+                                    >
+                                        <Copy size={14} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -441,12 +456,23 @@ export default function AccessTab({ projectId }) {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="font-mono text-zinc-200 text-sm flex items-center gap-2">
-                                    <Key size={14} className={secretKey ? 'text-emerald-400' : 'text-zinc-600'} />
-                                    {secretKey ? (
-                                        <span className="text-emerald-400 break-all">{secretKey}</span>
-                                    ) : (
-                                        <span className="text-zinc-600">****************************</span>
+                                <div className="font-mono text-zinc-200 text-sm flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Key size={14} className={secretKey ? 'text-emerald-400' : 'text-zinc-600'} />
+                                        {secretKey ? (
+                                            <span className="text-emerald-400 break-all">{secretKey}</span>
+                                        ) : (
+                                            <span className="text-zinc-600">****************************</span>
+                                        )}
+                                    </div>
+                                    {secretKey && (
+                                        <button
+                                            onClick={() => copyToClipboard(secretKey, 'Secret Key Copied!')}
+                                            className="text-zinc-500 hover:text-emerald-400 transition-colors"
+                                            title="Copy Secret Key"
+                                        >
+                                            <Copy size={14} />
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -715,8 +741,15 @@ export default function AccessTab({ projectId }) {
 
                                 <div>
                                     <label className="text-xs text-zinc-500 font-bold uppercase mb-1.5 block">API Key</label>
-                                    <div className="bg-black/50 border border-white/10 p-3 rounded-lg font-mono text-emerald-400 text-sm break-all select-all">
-                                        {createdKey.key}
+                                    <div className="bg-black/50 border border-white/10 p-3 rounded-lg font-mono text-emerald-400 text-sm break-all select-all flex justify-between items-center">
+                                        <span>{createdKey.key}</span>
+                                        <button
+                                            onClick={() => copyToClipboard(createdKey.key, 'API Key Copied!')}
+                                            className="text-emerald-500/50 hover:text-emerald-400 transition-colors"
+                                            title="Copy API Key"
+                                        >
+                                            <Copy size={16} />
+                                        </button>
                                     </div>
                                 </div>
 

@@ -1,0 +1,90 @@
+name: Build, Package, and Auto-Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: linux
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install Frontend Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Compile React Frontend
+        working-directory: ./client
+        # Statically binding the URL to the exact domain you requested for the frontend's API calls.
+        env:
+          VITE_API_URL: https://api.dlm.lol
+        run: npm run build
+
+      - name: Generate Production .env File
+        run: |
+          touch .env.production
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.production
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.production
+          echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env.production
+          echo "PORT=6997" >> .env.production
+          echo "NODE_ENV=production" >> .env.production
+
+      - name: Prepare Deployment Package
+        run: |
+          mkdir deploy_pkg
+          rsync -av --exclude='node_modules' server/ deploy_pkg/server/
+          cp -r client/dist deploy_pkg/client_dist
+          mv .env.production deploy_pkg/.env.production
+
+      - name: Copy files to Server via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "deploy_pkg/*"
+          target: "~/"
+
+      - name: Execute Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # 1. Move the uploaded payload to the web directory
+            sudo mkdir -p /var/www/ot-dashboard
+            sudo cp -r ~/deploy_pkg/* /var/www/ot-dashboard/
+            sudo rm -rf ~/deploy_pkg
+
+            # 2. Secure the newly generated Environment Variables
+            sudo mkdir -p /etc/ot-dashboard
+            sudo mv /var/www/ot-dashboard/.env.production /etc/ot-dashboard/.env
+            sudo chown root:root /etc/ot-dashboard/.env
+            sudo chmod 600 /etc/ot-dashboard/.env
+
+            # 3. Install Node.js backend dependencies
+            cd /var/www/ot-dashboard/server
+            sudo npm install --production
+
+            # 4. Restart the PM2/Systemd Backend Process to apply new code
+            sudo systemctl restart ot-dashboard
