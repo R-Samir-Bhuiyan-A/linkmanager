@@ -23,6 +23,16 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: echo "SSH Connection Successful! Firewall is open."
 
+      - name: Configure Native SSH Client
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Verify SSH Connection (Fail-Fast)
+        run: ssh -v -i ~/.ssh/id_ed25519 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'echo "SSH Connection Successful!"'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,7 +52,6 @@ jobs:
 
       - name: Compile React Frontend
         working-directory: ./client
-        # Statically binding the URL to the exact domain you requested for the frontend's API calls.
         env:
           VITE_API_URL: https://api.dlm.lol
         run: npm run build
@@ -64,29 +73,21 @@ jobs:
           mv .env.production deploy_pkg/.env.production
 
       - name: Copy files to Server via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "deploy_pkg/*"
-          target: "~/"
+        run: scp -r -i ~/.ssh/id_ed25519 deploy_pkg/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/
 
       - name: Execute Remote Deployment via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            
             # 1. Move the uploaded payload to the web directory
             sudo mkdir -p /var/www/ot-dashboard
-            sudo cp -r ~/deploy_pkg/* /var/www/ot-dashboard/
-            sudo rm -rf ~/deploy_pkg
+            sudo cp -r ~/server ~/client_dist /var/www/ot-dashboard/
+            sudo rm -rf ~/server ~/client_dist
 
             # 2. Secure the newly generated Environment Variables
             sudo mkdir -p /etc/ot-dashboard
-            sudo mv /var/www/ot-dashboard/.env.production /etc/ot-dashboard/.env
+            sudo mv ~/.env.production /etc/ot-dashboard/.env
             sudo chown root:root /etc/ot-dashboard/.env
             sudo chmod 600 /etc/ot-dashboard/.env
 
@@ -96,3 +97,4 @@ jobs:
 
             # 4. Restart the PM2/Systemd Backend Process to apply new code
             sudo systemctl restart ot-dashboard
+          EOF
