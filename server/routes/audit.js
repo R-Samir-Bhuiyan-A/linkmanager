@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
 const ApiLog = require('../models/ApiLog');
+const Project = require('../models/Project');
 const { requireAuth: auth } = require('../middleware/auth');
 const requireRole = require('../middleware/rbac');
 
@@ -35,22 +36,42 @@ router.get('/project/:projectId', auth, async (req, res) => {
 router.get('/api-logs', auth, async (req, res) => {
     try {
         let query = {};
-        
-        // If not Owner/Admin, they must pass a projectId they manage (omitted for global view)
-        if (!['Owner', 'Admin'].includes(req.user.role)) {
-            // Need a projectId if lower level role to fetch logs strictly for that project
-            if(!req.query.projectId) {
-                 return res.status(403).json({ message: 'Must specify a project ID to fetch logs for' });
+
+        if (!['Owner', 'Admin', 'Moderator'].includes(req.user.role)) {
+            const requestedProjectId = req.query.projectId;
+            if (!requestedProjectId) {
+                return res.status(403).json({ message: 'Must specify a project ID to fetch logs for' });
             }
-            query.projectId = req.query.projectId;
+
+            const project = await Project.findById(requestedProjectId);
+            if (!project) return res.status(404).json({ message: 'Project not found' });
+
+            if (!project.assignedUsers.includes(req.user.id)) {
+                return res.status(403).json({ message: 'Access denied: You are not assigned to this project' });
+            }
+
+            query.projectId = requestedProjectId;
         } else if (req.query.projectId) {
             query.projectId = req.query.projectId;
+        }
+
+        if (req.query.ip) {
+            query.ip = new RegExp(req.query.ip, 'i');
+        }
+        if (req.query.endpoint) {
+            query.endpoint = new RegExp(req.query.endpoint, 'i');
+        }
+        if (req.query.method) {
+            query.method = req.query.method;
+        }
+        if (req.query.status) {
+            query.statusCode = parseInt(req.query.status);
         }
 
         const logs = await ApiLog.find(query)
             .sort({ timestamp: -1 })
             .limit(200);
-            
+
         res.json(logs);
     } catch (err) {
         res.status(500).json({ message: err.message });

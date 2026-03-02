@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Clock, Plus, Trash, FileEdit, Info, Activity } from 'lucide-react';
+import { Clock, Plus, Trash, FileEdit, Info, Activity, Filter, Search } from 'lucide-react';
 import api from '../../api';
 
 export default function ProjectAuditTab({ projectId }) {
     const [logs, setLogs] = useState([]);
     const [apiLogs, setApiLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [filterMethod, setFilterMethod] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterEndpoint, setFilterEndpoint] = useState('');
+    const [filterIp, setFilterIp] = useState('');
 
     useEffect(() => {
         fetchLogs();
@@ -14,9 +19,16 @@ export default function ProjectAuditTab({ projectId }) {
     const fetchLogs = async () => {
         setLoading(true);
         try {
+            const query = new URLSearchParams();
+            query.append('projectId', projectId);
+            if (filterMethod) query.append('method', filterMethod);
+            if (filterStatus) query.append('status', filterStatus);
+            if (filterEndpoint) query.append('endpoint', filterEndpoint);
+            if (filterIp) query.append('ip', filterIp);
+
             const [auditRes, apiRes] = await Promise.all([
                 api.get(`/audit/project/${projectId}`),
-                api.get(`/audit/api-logs?projectId=${projectId}`)
+                api.get(`/audit/api-logs?${query.toString()}`)
             ]);
             setLogs(auditRes.data);
             setApiLogs(apiRes.data);
@@ -70,7 +82,7 @@ export default function ProjectAuditTab({ projectId }) {
                     <h2 className="text-xl font-bold text-white mb-1">Project History</h2>
                     <p className="text-sm text-zinc-400">Recent actions and API requests for this project.</p>
                 </div>
-                <button 
+                <button
                     onClick={fetchLogs}
                     className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
                 >
@@ -111,7 +123,7 @@ export default function ProjectAuditTab({ projectId }) {
                                                 </div>
                                             </div>
                                             <div className="text-xs text-zinc-400 flex items-center gap-1.5 pl-[44px]">
-                                                 <div className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[8px] font-bold">
+                                                <div className="w-4 h-4 rounded-full bg-zinc-800 flex items-center justify-center text-[8px] font-bold">
                                                     {log.user.charAt(0).toUpperCase()}
                                                 </div>
                                                 {log.user}
@@ -131,9 +143,57 @@ export default function ProjectAuditTab({ projectId }) {
                             <Activity size={16} className="text-emerald-400" /> API Access Logs
                         </h3>
                     </div>
+
+                    <div className="p-4 border-b border-white/5 bg-black/20 flex flex-wrap gap-2 items-center">
+                        <Filter size={14} className="text-zinc-500 mr-2" />
+                        <select
+                            value={filterMethod}
+                            onChange={e => setFilterMethod(e.target.value)}
+                            className="bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                        >
+                            <option value="">Method</option>
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+
+                        <input
+                            placeholder="Status"
+                            value={filterStatus}
+                            onChange={e => setFilterStatus(e.target.value)}
+                            className="w-20 bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                        />
+
+                        <div className="relative flex-1 min-w-[120px]">
+                            <Search className="absolute left-2 top-1.5 text-zinc-500" size={12} />
+                            <input
+                                placeholder="Endpoint..."
+                                value={filterEndpoint}
+                                onChange={e => setFilterEndpoint(e.target.value)}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg py-1 pl-7 pr-2 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                            />
+                        </div>
+
+                        <input
+                            placeholder="IP Address..."
+                            value={filterIp}
+                            onChange={e => setFilterIp(e.target.value)}
+                            className="w-28 bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                        />
+
+                        <button
+                            onClick={fetchLogs}
+                            className="px-3 py-1 bg-violet-600/20 text-violet-400 hover:bg-violet-600/30 rounded border border-violet-500/30 text-xs font-bold transition-colors"
+                        >
+                            Apply
+                        </button>
+                    </div>
+
                     <div className="flex-1 overflow-x-auto">
                         {apiLogs.length === 0 ? (
-                            <div className="p-8 text-center text-sm text-zinc-500">No API access recorded.</div>
+                            <div className="p-8 text-center text-sm text-zinc-500">No API access recorded matching filters.</div>
                         ) : (
                             <table className="w-full text-left">
                                 <thead className="bg-white/5 border-b border-white/5 text-[10px] uppercase text-zinc-500 font-bold tracking-wider">

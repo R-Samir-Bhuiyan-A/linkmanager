@@ -65,7 +65,7 @@ router.post('/', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
 
     try {
         const newProject = await project.save();
-        
+
         // Notify Owners and Admins about the new project
         const admins = await User.find({ role: { $in: ['Owner', 'Admin'] } });
         const notifications = admins.map(admin => ({
@@ -105,7 +105,7 @@ router.patch('/:id', auth, requireRole(['Owner', 'Admin', 'Moderator', 'Manage-o
         if (req.body.links) project.links = req.body.links;
         if (req.body.maintenanceMode !== undefined) project.maintenanceMode = req.body.maintenanceMode;
         if (req.body.customHeaders !== undefined) project.customHeaders = req.body.customHeaders;
-        
+
         // Owner/Admin only fields
         if (['Owner', 'Admin'].includes(req.user.role)) {
             if (req.body.assignedUsers !== undefined) project.assignedUsers = req.body.assignedUsers;
@@ -163,7 +163,7 @@ router.delete('/:id', auth, requireRole(['Owner', 'Admin']), async (req, res) =>
 });
 
 // SECURE: Reveal Secret Key
-router.post('/:id/secret/reveal', async (req, res) => {
+router.post('/:id/secret/reveal', auth, requireRole(['Owner', 'Admin', 'Moderator']), async (req, res) => {
     try {
         const { password } = req.body;
         const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'samir'; // TODO: Move to shared auth config
@@ -183,7 +183,7 @@ router.post('/:id/secret/reveal', async (req, res) => {
 });
 
 // SECURE: Reset Secret Key
-router.post('/:id/secret/reset', async (req, res) => {
+router.post('/:id/secret/reset', auth, requireRole(['Owner', 'Admin', 'Moderator']), async (req, res) => {
     try {
         const { password } = req.body;
         const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'samir';
@@ -207,7 +207,7 @@ router.post('/:id/secret/reset', async (req, res) => {
 });
 
 // SECURE: Generate New API Key
-router.post('/:id/keys', async (req, res) => {
+router.post('/:id/keys', auth, requireRole(['Owner', 'Admin', 'Moderator', 'Manage-only']), async (req, res) => {
     try {
         const { name, scopes } = req.body;
         const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'samir';
@@ -218,6 +218,12 @@ router.post('/:id/keys', async (req, res) => {
 
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        if (req.user.role === 'Manage-only') {
+            if (!project.assignedUsers.includes(req.user.id)) {
+                return res.status(403).json({ message: 'Access denied: You are not assigned to manage this project' });
+            }
+        }
 
         // Generate Key
         const apiKey = 'sk-' + crypto.randomBytes(24).toString('hex');
@@ -240,10 +246,16 @@ router.post('/:id/keys', async (req, res) => {
 });
 
 // SECURE: Revoke API Key
-router.delete('/:id/keys/:keyId', async (req, res) => {
+router.delete('/:id/keys/:keyId', auth, requireRole(['Owner', 'Admin', 'Moderator', 'Manage-only']), async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        if (req.user.role === 'Manage-only') {
+            if (!project.assignedUsers.includes(req.user.id)) {
+                return res.status(403).json({ message: 'Access denied: You are not assigned to manage this project' });
+            }
+        }
 
         project.apiKeys = project.apiKeys.filter(k => k._id.toString() !== req.params.keyId);
         await project.save();

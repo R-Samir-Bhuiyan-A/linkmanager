@@ -9,10 +9,21 @@ export default function VersionsTab({ projectId }) {
     const [updateUrl, setUpdateUrl] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [currentUserRole, setCurrentUserRole] = useState(null);
 
     useEffect(() => {
         fetchProject();
+        fetchCurrentUser();
     }, [projectId]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchProject = async () => {
         try {
@@ -62,19 +73,21 @@ export default function VersionsTab({ projectId }) {
                         <div>
                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Latest Version</label>
                             <input
-                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all font-mono"
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={latestVersion}
                                 onChange={e => setLatestVersion(e.target.value)}
                                 placeholder="1.0.0"
+                                disabled={currentUserRole === 'View-only'}
                             />
                         </div>
                         <div>
                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Minimum Version</label>
                             <input
-                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all font-mono"
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={minVersion}
                                 onChange={e => setMinVersion(e.target.value)}
                                 placeholder="0.0.0"
+                                disabled={currentUserRole === 'View-only'}
                             />
                         </div>
                     </div>
@@ -84,10 +97,11 @@ export default function VersionsTab({ projectId }) {
                         <div className="relative">
                             <Download className="absolute left-4 top-3.5 text-zinc-600" size={18} />
                             <input
-                                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all"
+                                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={updateUrl}
                                 onChange={e => setUpdateUrl(e.target.value)}
                                 placeholder="https://apps.apple.com/app/id123"
+                                disabled={currentUserRole === 'View-only'}
                             />
                         </div>
                         <p className="text-xs text-zinc-500 mt-2">
@@ -108,16 +122,18 @@ export default function VersionsTab({ projectId }) {
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-end">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2"
-                    >
-                        <Save size={18} />
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
+                {currentUserRole !== 'View-only' && (
+                    <div className="mt-8 flex justify-end">
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

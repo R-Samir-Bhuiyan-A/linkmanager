@@ -15,7 +15,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
+
         // Auto-bootstrap Owner account if DB is empty
         const userCount = await User.countDocuments();
         if (userCount === 0) {
@@ -49,19 +49,19 @@ router.post('/login', async (req, res) => {
         await user.save();
 
         const token = jwt.sign(
-            { id: user._id, role: user.role, email: user.email }, 
-            JWT_SECRET, 
+            { id: user._id, role: user.role, email: user.email },
+            JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        res.json({ 
-            token, 
-            user: { 
-                id: user._id, 
-                name: user.name, 
-                email: user.email, 
-                role: user.role 
-            } 
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (err) {
         console.error("Login error:", err);
@@ -121,11 +121,41 @@ router.post('/forgot-password', async (req, res) => {
 
         try {
             const resetUrl = `${process.env.FRONTEND_URL || req.headers.origin}/reset-password?token=${token}`;
-            
+
+            const htmlTemplate = `
+                <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #09090b; color: #e4e4e7; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                    <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05)); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <div style="width: 60px; height: 60px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);">
+                            <span style="color: white; font-size: 28px; font-weight: bold;">⬡</span>
+                        </div>
+                        <h1 style="color: #fff; margin: 0; font-size: 24px; font-weight: 700; tracking: tight;">Password Recovery</h1>
+                    </div>
+                    
+                    <div style="padding: 40px 30px; background-color: rgba(0,0,0,0.2);">
+                        <p style="color: #a1a1aa; line-height: 1.6; font-size: 15px; margin-top: 0;">You have requested to reset the password for your OT-Dashboard account.</p>
+                        <p style="color: #a1a1aa; line-height: 1.6; font-size: 15px;">Please click the secure button below to establish a new credential format:</p>
+                        
+                        <div style="text-align: center; margin: 40px 0;">
+                            <a href="${resetUrl}" style="background-color: #8b5cf6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);">Reset Credentials</a>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-top: 30px;">
+                            <p style="font-size: 13px; color: #71717a; margin-top: 0; margin-bottom: 8px;">Or copy and paste this secure link into your browser:</p>
+                            <p style="font-size: 13px; color: #a1a1aa; word-break: break-all; margin: 0; font-family: monospace;">${resetUrl}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background-color: #000; padding: 24px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <p style="font-size: 13px; color: #52525b; margin: 0;">If you did not initiate this request, you may safely ignore this automated transmission. Your current credentials will remain intact.</p>
+                    </div>
+                </div>
+            `;
+
             await sendEmail({
                 to: user.email,
-                subject: 'Password Reset Request',
-                text: `You have requested a password reset. Please click on the following link or paste it into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`
+                subject: 'OT-Dashboard - Password Reset Request',
+                text: `You have requested a password reset. Please click on the following link or paste it into your browser to complete the process:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`,
+                html: htmlTemplate
             });
             res.json({ message: 'Password reset link sent to your email.' });
         } catch (emailErr) {
@@ -158,6 +188,7 @@ router.post('/reset-password', async (req, res) => {
         user.password = await bcrypt.hash(password, salt);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+        user.status = 'Active'; // Activate the user if they were in 'Invited' status
         await user.save();
 
         res.json({ message: 'Password has been updated successfully.' });

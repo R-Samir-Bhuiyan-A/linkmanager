@@ -20,14 +20,32 @@ export default function ProjectView() {
     const navigate = useNavigate();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('config');
+    const [activeTab, setActiveTab] = useState('');
     const [isMaintenance, setIsMaintenance] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [currentUserRole, setCurrentUserRole] = useState(null);
     const { success, error } = useNotification();
 
     useEffect(() => {
         fetchProject();
+        fetchCurrentUser();
     }, [id]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            const role = res.data.user?.role;
+            setCurrentUserRole(role);
+            if (role === 'View-only' && !activeTab) {
+                setActiveTab('docs');
+            } else if (!activeTab) {
+                setActiveTab('config');
+            }
+        } catch (err) {
+            console.error(err);
+            if (!activeTab) setActiveTab('docs');
+        }
+    };
 
     const fetchProject = async () => {
         try {
@@ -68,16 +86,22 @@ export default function ProjectView() {
     if (loading) return <div className="p-12 text-center text-zinc-500 animate-pulse">Loading project data...</div>;
     if (!project) return <div className="p-12 text-center text-red-400">Project not found</div>;
 
-    const tabs = [
-        { id: 'config', label: 'Configuration', icon: Globe },
+    const allTabs = [
+        { id: 'config', label: 'Configuration', icon: Globe, restricted: ['View-only'] },
         { id: 'docs', label: 'Documentation', icon: FileText },
         { id: 'links', label: 'Resources', icon: LinkIcon },
         { id: 'versions', label: 'Versions', icon: Layers },
-        { id: 'access', label: 'Access Control', icon: Shield },
-        { id: 'licenses', label: 'Licenses', icon: Key },
+        { id: 'access', label: 'Access Control', icon: Shield, restricted: ['View-only'] },
+        { id: 'licenses', label: 'Licenses', icon: Key, restricted: ['View-only'] },
         { id: 'instances', label: 'Live Instances', icon: Monitor },
-        { id: 'audit', label: 'Audit Log', icon: FileText },
+        { id: 'audit', label: 'Audit Log', icon: FileText, restricted: ['View-only'] },
     ];
+
+    const tabs = allTabs.filter(tab => {
+        if (!tab.restricted) return true;
+        if (!currentUserRole) return false;
+        return !tab.restricted.includes(currentUserRole);
+    });
 
     return (
         <PageTransition>
@@ -143,21 +167,25 @@ export default function ProjectView() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 bg-black/40 border border-white/5 px-4 py-2 rounded-xl backdrop-blur-sm">
-                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Maintenance Mode</span>
+                    {currentUserRole !== 'View-only' && (
+                        <div className="flex items-center gap-3 bg-black/40 border border-white/5 px-4 py-2 rounded-xl backdrop-blur-sm">
+                            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Maintenance Mode</span>
+                            <button
+                                onClick={toggleMaintenance}
+                                className={`w-11 h-6 rounded-full p-1 transition-all duration-300 ${isMaintenance ? 'bg-amber-500 shadow-[0_0_15px_-3px_rgba(245,158,11,0.5)]' : 'bg-zinc-700'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${isMaintenance ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    )}
+                    {(currentUserRole === 'Owner' || currentUserRole === 'Admin') && (
                         <button
-                            onClick={toggleMaintenance}
-                            className={`w-11 h-6 rounded-full p-1 transition-all duration-300 ${isMaintenance ? 'bg-amber-500 shadow-[0_0_15px_-3px_rgba(245,158,11,0.5)]' : 'bg-zinc-700'}`}
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="p-3 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${isMaintenance ? 'translate-x-5' : 'translate-x-0'}`} />
+                            <Trash2 size={20} />
                         </button>
-                    </div>
-                    <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className="p-3 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
-                    >
-                        <Trash2 size={20} />
-                    </button>
+                    )}
                 </div>
             </div>
 

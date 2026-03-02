@@ -17,11 +17,22 @@ export default function LinksTab({ projectId }) {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newLink, setNewLink] = useState({ title: '', url: '', icon: 'link' });
+    const [currentUserRole, setCurrentUserRole] = useState(null);
     const { success, error } = useNotification();
 
     useEffect(() => {
         fetchLinks();
+        fetchCurrentUser();
     }, [projectId]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchLinks = async () => {
         try {
@@ -69,12 +80,14 @@ export default function LinksTab({ projectId }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Project Resources</h3>
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors text-sm font-medium"
-                >
-                    <Plus size={14} /> Add Link
-                </button>
+                {currentUserRole !== 'View-only' && (
+                    <button
+                        onClick={() => setIsAdding(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors text-sm font-medium"
+                    >
+                        <Plus size={14} /> Add Link
+                    </button>
+                )}
             </div>
 
             {isAdding && (
@@ -109,8 +122,8 @@ export default function LinksTab({ projectId }) {
                                         key={iconKey}
                                         onClick={() => setNewLink({ ...newLink, icon: iconKey })}
                                         className={`p-2 rounded-lg transition-colors ${newLink.icon === iconKey
-                                                ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
-                                                : 'bg-black/20 text-zinc-500 hover:text-zinc-300 hover:bg-black/40'
+                                            ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                                            : 'bg-black/20 text-zinc-500 hover:text-zinc-300 hover:bg-black/40'
                                             }`}
                                     >
                                         <Icon size={18} />
@@ -145,12 +158,14 @@ export default function LinksTab({ projectId }) {
                                 <div className="p-2 rounded-lg bg-white/5 text-zinc-400 group-hover:text-violet-400 transition-colors">
                                     <Icon size={20} />
                                 </div>
-                                <button
-                                    onClick={() => handleDelete(i)}
-                                    className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                                {currentUserRole !== 'View-only' && (
+                                    <button
+                                        onClick={() => handleDelete(i)}
+                                        className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
                             <div className="font-bold text-zinc-200 group-hover:text-white transition-colors">{link.title}</div>
                             <a

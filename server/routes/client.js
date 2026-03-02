@@ -6,6 +6,10 @@ const Instance = require('../models/Instance');
 const AccessRule = require('../models/AccessRule');
 const License = require('../models/License');
 const tracker = require('../middleware/tracker');
+const apiLogger = require('../middleware/apiLogger');
+
+router.use(tracker);
+router.use(apiLogger);
 
 // Helper to check version requirements
 const isVersionAllowed = (current, min) => {
@@ -14,7 +18,7 @@ const isVersionAllowed = (current, min) => {
 };
 
 // GET /config/:publicId
-router.get('/config/:publicId', [tracker], async (req, res) => {
+router.get('/config/:publicId', async (req, res) => {
     const { publicId } = req.params;
     const {
         env = 'prod',
@@ -27,6 +31,7 @@ router.get('/config/:publicId', [tracker], async (req, res) => {
         // 1. Find Project (include secretKey for auth check)
         const project = await Project.findOne({ publicId }).select('+secretKey');
         if (!project) return res.status(404).json({ error: 'Project not found' });
+        req.projectId = project._id;
 
         // 2. Check Maintenance
         if (project.maintenanceMode) {
@@ -134,7 +139,7 @@ router.get('/config/:publicId', [tracker], async (req, res) => {
 });
 
 // POST /heartbeat/:publicId
-router.post('/heartbeat/:publicId', [tracker], async (req, res) => {
+router.post('/heartbeat/:publicId', async (req, res) => {
     const { publicId } = req.params;
     const { instanceId, hardwareId, platform, version } = req.body;
 
@@ -143,6 +148,7 @@ router.post('/heartbeat/:publicId', [tracker], async (req, res) => {
     try {
         const project = await Project.findOne({ publicId });
         if (!project) return res.status(404).json({ error: 'Project not found' });
+        req.projectId = project._id;
 
         // Update or Create Instance
         await Instance.findOneAndUpdate(
@@ -167,7 +173,7 @@ router.post('/heartbeat/:publicId', [tracker], async (req, res) => {
 });
 
 // POST /validate-license
-router.post('/validate-license', [tracker], async (req, res) => {
+router.post('/validate-license', async (req, res) => {
     const { key, hwid, publicId } = req.body;
 
     if (!key || !hwid || !publicId) {
@@ -177,6 +183,7 @@ router.post('/validate-license', [tracker], async (req, res) => {
     try {
         const project = await Project.findOne({ publicId });
         if (!project) return res.status(404).json({ valid: false, message: 'Project not found' });
+        req.projectId = project._id;
 
         const license = await License.findOne({ key, project: project._id });
         if (!license) return res.status(403).json({ valid: false, message: 'Invalid license key' });

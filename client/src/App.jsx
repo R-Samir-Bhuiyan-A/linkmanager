@@ -20,6 +20,26 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
+const AdminRoute = ({ children }) => {
+  const [isAdmin, setIsAdmin] = useState(null);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const res = await api.get('/auth/me');
+        const role = res.data.user?.role;
+        setIsAdmin(role === 'Owner' || role === 'Admin');
+      } catch (err) {
+        setIsAdmin(false);
+      }
+    };
+    checkRole();
+  }, []);
+
+  if (isAdmin === null) return <div className="p-12 text-center text-zinc-500 animate-pulse">Loading auth...</div>;
+  return isAdmin ? children : <Navigate to="/" replace />;
+};
+
 function App() {
   const [globalSettings, setGlobalSettings] = useState(null);
 
@@ -28,7 +48,7 @@ function App() {
       try {
         const res = await api.get('/settings');
         setGlobalSettings(res.data);
-        
+
         // Dynamically update site name and favicon
         if (res.data.siteName) document.title = res.data.siteName;
         if (res.data.faviconUrl) {
@@ -60,14 +80,22 @@ function App() {
             </PrivateRoute>
           }>
             <Route index element={<Dashboard />} />
-            <Route path="project/new" element={<ProjectCreate />} />
+            <Route path="project/new" element={
+              <AdminRoute><ProjectCreate /></AdminRoute>
+            } />
             <Route path="project/:id" element={<ProjectView />} />
             <Route path="analytics" element={<Analytics />} />
-            <Route path="audit" element={<AuditLog />} />
+            <Route path="audit" element={
+              <AdminRoute><AuditLog /></AdminRoute>
+            } />
             <Route path="api-docs" element={<ApiPlayground />} />
             <Route path="api-reference" element={<ApiDocs />} />
-            <Route path="team" element={<Team />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="team" element={
+              <AdminRoute><Team /></AdminRoute>
+            } />
+            <Route path="settings" element={
+              <AdminRoute><Settings /></AdminRoute>
+            } />
           </Route>
         </Routes>
       </NotificationProvider>

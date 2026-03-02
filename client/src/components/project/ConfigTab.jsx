@@ -11,11 +11,22 @@ export default function ConfigTab({ projectId }) {
     const [showImport, setShowImport] = useState(false);
     const [newConfig, setNewConfig] = useState({ key: '', value: '' });
     const [importContent, setImportContent] = useState('');
+    const [currentUserRole, setCurrentUserRole] = useState(null);
     const { success, error } = useNotification();
 
     useEffect(() => {
         fetchConfigs();
+        fetchCurrentUser();
     }, [projectId]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchConfigs = async () => {
         try {
@@ -109,20 +120,22 @@ export default function ConfigTab({ projectId }) {
                         </button>
                     ))}
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setShowImport(true)}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Upload size={16} /> Import .env
-                    </button>
-                    <button
-                        onClick={() => setShowAdd(true)}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={16} /> Add Config
-                    </button>
-                </div>
+                {currentUserRole !== 'View-only' && (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setShowImport(true)}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Upload size={16} /> Import .env
+                        </button>
+                        <button
+                            onClick={() => setShowAdd(true)}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={16} /> Add Config
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="grid gap-4">
@@ -138,14 +151,16 @@ export default function ConfigTab({ projectId }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => toggleConfig(config._id, config.isEnabled)} className="text-zinc-500 hover:text-violet-400 transition-colors">
-                                {config.isEnabled ? <ToggleRight size={24} className="text-emerald-400" /> : <ToggleLeft size={24} />}
-                            </button>
-                            <button onClick={() => deleteConfig(config._id)} className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
+                        {currentUserRole !== 'View-only' && (
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => toggleConfig(config._id, config.isEnabled)} className="text-zinc-500 hover:text-violet-400 transition-colors">
+                                    {config.isEnabled ? <ToggleRight size={24} className="text-emerald-400" /> : <ToggleLeft size={24} />}
+                                </button>
+                                <button onClick={() => deleteConfig(config._id)} className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))}
 

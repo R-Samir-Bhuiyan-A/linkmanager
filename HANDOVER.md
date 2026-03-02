@@ -1,72 +1,73 @@
-# OT-Dashboard Handover Document
+# OT-Dashboard Development Handover Report
 
-This document serves as a comprehensive handover of all architectural changes, bug fixes, and configuration updates performed on the **OT-Dashboard** repository during this development session.
-
-## 🏗️ Architectural & Configuration Changes
-
-### 1. Unified Local Development (Vite Proxy)
-
-The frontend and backend were previously disjointed, leading to CORS issues and hardcoded port bindings.
-
-- **Vite Proxy Built:** Configured `client/vite.config.js` to proxy all `/api` and `/v1` traffic directly to the unified backend running on port `6997`.
-- **Environment Variables:** Corrected `.env` pathing. Both the `server` (via `dotenv` path config) and `client` (via Vite `envDir`) now correctly load their configurations from the root directory's `.env` file instead of looking in their respective subfolders.
-
-### 2. Vercel Deprecation
-
-The user requested the removal of Vercel-specific deployment constraints to prepare for standard self-hosting/monolith deployment.
-
-- **Removed Files:** Deleted `vercel.json` and `middleware.js` from the root directory.
-- **Backend Cleaned:** Removed Vercel-specific Express configurations like `app.set('trust proxy', 1)` from `server/index.js` and bypassed the Vercel-only backup disable logic in the `BackupService`.
-
-### 3. Default Credentials
-
-- Updated the fallback administrator credentials in `server/routes/auth.js` and `.env.example` from `admin:samir` to the standard `admin:admin` to ensure smooth local onboarding.
-
-## 🐛 Bug Fixes & Code Standardization
-
-### 1. Hardcoded Localhost Removal
-
-Multiple components across the application were hardcoding `http://localhost:5000`, causing `ERR_CONNECTION_REFUSED` since the backend was running on port 6997 and proxying dynamically.
-
-- **Refactored `client/src/api.js`**: Set `baseURL` definitively to `/api`.
-- **`Dashboard.jsx`**: Replaced raw `axios.get('http://localhost:5000...')` with the centralized `api` wrapper, resolving silent data loss and `"No routes matched location /undefined"` React Router crashes.
-- **`ProjectCreate.jsx`**: Replaced a raw POST to port 5000 with the `api.post` interceptor.
-- **`ApiPlayground.jsx`**: Transitioned target URLs from absolute `http://localhost:5000` to relative paths spanning both the `/api` internal structure and the public `/v1` endpoints.
-
-### 2. Duplicate API Path Routing (404s)
-
-- **`LicensesTab.jsx` Fix**: Removed redundant static `/api` prefixes in fetch strings (e.g., changing `/api/licenses` to `/licenses`). Because the `api.js` interceptor inherently injects `/api`, the previous implementation resulted in duplicate `api/api/licenses/` 404 routes.
-- **`/v1` Playground Traffic**: Reactivated native `axios` strictly within `ApiPlayground.jsx` for executing public `/v1` queries. This bypasses the default `/api` interceptor, preventing malformed paths like `/api/v1/heartbeat`.
-
-### 3. Mongoose Deprecation Warnings
-
-The Node backend console was spamming deprecation warnings regarding the usage of `{ new: true }` in `findOneAndUpdate` operations.
-
-- Modernized all four data models across `BackupService.js`, `configs.js`, `client.js`, and `tracker.js` by standardizing the option object to strictly use `{ returnDocument: 'after' }`.
-
-## 📦 Source Control & Contributions
-
-- **Repository Forked**: Created a local fork (`Carloplayz/linkmanager`) due to restricted remote write access.
-- **Branch Created**: All code changes generated in this session were isolated to the `fix/api-networking` branch.
-- **Pull Request Submitted**: Successfully drafted and dispatched **Pull Request #1** to the upstream `R-Samir-Bhuiyan-A/linkmanager` repository containing all proxy and deprecation fixes for the real owner to review and merge into the principal codebase.
-
-## ⚠️ Known Bugs & Non-Issues
-
-The following console messages were observed during development but determined to be harmless or external to the OT-Dashboard codebase:
-
-1. **Bootstrap Autofill Overlay (`Uncaught TypeError: Failed to construct 'URL'`)**
-   - **Diagnosis**: This error originates entirely from a third-party browser extension (specifically related to password/autofill overlays injecting iframes into the React DOM) and does not indicate failing React logic.
-2. **Transient 500 Route Errors on Save**
-   - **Diagnosis**: Nodemon restarts the backend server immediately upon saving a file. If the frontend performs a hot-reload fetch a millisecond before the backend fully boots, an `ECONNREFUSED` or `socket hang up` occurs, resulting in a temporary `500 Internal Server Error`. This resolves inherently upon manual refresh or the subsequent automatic poll.
-3. **React DevTools Notification**
-   - **Diagnosis**: Standard development environment suggestion logged by `react-dom`; safely ignorable.
-4. **Temporary Password Does Not Work**
-   - **Diagnosis**: The temporary password provided during new account/team member creation does not work or authenticate properly. This is a known bug to be addressed next.
-
-## 📝 Todo List
-
-- [ ] Implement HTML mail templates for email dispatching (e.g., password resets, team invitations).
+**Date:** March 2026
+**Project:** OT-Dashboard
+**Status:** Completed
 
 ---
 
-_Created automatically via development session handover._
+## 📑 Executive Summary
+
+This document serves as the formal handover report detailing the recent architectural modifications, bug resolutions, security enhancements, and aesthetic configurations applied to the OT-Dashboard ecosystem. This includes comprehensive role-based access control, local development stabilization, and global UI theming.
+
+---
+
+## 🔐 1. Role-Based Access Control (RBAC) Hardening
+
+A robust, tiered authorization framework has been instituted across both the frontend React application and the backend Express ecosystem.
+
+### Tier Definitions
+
+* **Owner & Admin**: Unrestricted ecosystem access. Capabilities include Team member management, Global Setting mutations, Audit Log reviews, and Project lifecycle management.
+* **Moderator**: Elevated privileges scoped to Projects. Can update configuration and keys, but denied access to core system infrastructure (Settings, Audit Logs, Team).
+* **Manage-only**: Restricted write access. Can only manipulate configurations for Projects they are explicitly designated to.
+* **View-only**: Strict read-only access. Limited to reading Documentation, Instances, Resources, and recorded Versions for assigned Projects.
+
+### Security Implementation
+
+* **Frontend Routing**: Critical administrative routes (`/settings`, `/audit`, `/team`, `/project/new`) are secured within an `<AdminRoute>` Higher-Order Component. Unauthorized access attempts automatically redirect to the safe Dashboard view.
+* **Progressive Disclosure**: UI elements, buttons, and navigation parameters dynamically un-mount depending on the authenticated role constraint.
+* **Backend Validation**: Sensitive API endpoints (`PATCH /settings`, `/branding`, Project generation/deletion, secret revealing) enforce server-side validation rejecting unauthenticated mutations via the `requireRole` middleware.
+
+---
+
+## 📊 2. API Logging & Analytics Optimization
+
+* **Global Tracker Detachment**: The `apiLogger` and `tracker` middleware were unbound from the root `server/index.js` lifecycle to prevent database saturation. Internal dashboard health pings and UI fetches no longer endlessly spam the `ApiLog` and `DailyStats` MongoDB collections.
+* **Targeted Capturing**: Logging has been explicitly bound only to the `/v1` plugin integrations (`client.js`), ensuring only legitimate external application traffic is tracked and measured.
+* **Advanced Audit Filtering**: Enhanced query parameter parsing within the `GET /api-logs` route. The frontend UI (both on the Global Audit Tab and individual Project tabs) now features robust filter toolbars supporting instantaneous sorting by Project, Endpoint Regex, HTTP Method, exact Status Code, and IP approximations.
+
+---
+
+## 🎨 3. UI/UX Consistency & Theming
+
+* **Ecosystem Dropdowns**: Eliminated the jarring native Operating System light-mode `<select>` dropdown renderings. A global CSS directive was injected into `index.css` to force all native `<option>` child tags into a unified `bg-zinc-900` dark-mode design, establishing UI harmony across the entire dashboard configuration hierarchy.
+* **Email HTML Branding**: Revamped the automated transactional email templates (Password Resets, Team Invitations) sent by the backend logic to match the sleek dark-violet aesthetic of the internal dashboard.
+
+---
+
+## 🏗️ 4. Local Development & Infrastructure Stability
+
+* **Vite Proxy Resolution**: Unified the frontend and backend local development environments via `vite.config.js`. API traffic dynamically targets port `6997` without resorting to hardcoded `localhost:5000` URLs. This resolved ubiquitous CORS failure states across the platform.
+* **Variable Normalization**: Both nested React and Node layers now successfully draw from a singular root-directory `.env` file instead of demanding separate configuration footprints.
+* **Vendor Decoupling**: Ripped out platform-specific hosting constraints (e.g., Vercel `middleware.js` definitions and unique runtime bindings). The ecosystem is primed for standard Containerized or VPS mono-deployment.
+
+---
+
+## 🐞 5. Resolved Anomalies
+
+* **Duplicate API Routing**: Removed redundant static route prefixes within Axios intercept calls (e.g., `api.get('/api/licenses')`), eliminating erroneous 404 dead-ends.
+* **Authentication Hash Skew**: Completely overhauled the broken "Temporary Password" invitation logic. New team members now receive a direct email activation link to set their inaugural password, repairing the bcrypt validation mismatches on initial login attempts.
+* **Deprecation Noise**: Standardized `findOneAndUpdate` calls across Mongoose schemas to use `{ returnDocument: 'after' }`, silencing terminal deprecation spam from backend development instances.
+
+---
+
+## 📌 Appendix: Known Non-Issues
+
+_The following behaviors may occasionally populate the runtime debug logs but are functioning as intended:_
+
+1. **`Uncaught TypeError: Failed to construct 'URL'`**: Originates strictly from Third-Party Browser Extensions (e.g., Password Managers) injecting invisible DOM framing. Safe to ignore.
+2. **Transient 500 ECONNREFUSED Errors**: Triggered solely during the active development process when Nodemon hot-reloads the Express server millisecond-prior to a React background poll. Resolves immediately upon boot completion.
+
+---
+_Generated on completion of LinkManager / OT-Dashboard RBAC & Networking Refactoring Taskforce._

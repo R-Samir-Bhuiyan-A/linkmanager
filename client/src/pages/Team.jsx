@@ -9,12 +9,23 @@ export default function Team() {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isInviting, setIsInviting] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'View-only', password: '' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'View-only' });
+    const [currentUserRole, setCurrentUserRole] = useState(null);
     const { success, error } = useNotification();
 
     useEffect(() => {
         fetchMembers();
+        fetchCurrentUser();
     }, []);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchMembers = async () => {
         try {
@@ -33,8 +44,8 @@ export default function Team() {
             const res = await api.post('/team/invite', newUser);
             setMembers([res.data, ...members]);
             setIsInviting(false);
-            setNewUser({ name: '', email: '', role: 'View-only', password: '' });
-            success('User created successfully');
+            setNewUser({ name: '', email: '', role: 'View-only' });
+            success('User invited successfully! They will receive an email shortly.');
         } catch (err) {
             error(err.response?.data?.message || 'Failed to invite user');
         }
@@ -58,12 +69,14 @@ export default function Team() {
                     <h1 className="text-3xl font-bold tracking-tight text-white">Team Management</h1>
                     <p className="text-zinc-400">Manage access and roles for your organization.</p>
                 </div>
-                <button
-                    onClick={() => setIsInviting(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-bold shadow-lg shadow-violet-500/20 transition-all"
-                >
-                    <UserPlus size={18} /> Invite Member
-                </button>
+                {(currentUserRole === 'Owner' || currentUserRole === 'Admin') && (
+                    <button
+                        onClick={() => setIsInviting(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-bold shadow-lg shadow-violet-500/20 transition-all"
+                    >
+                        <UserPlus size={18} /> Invite Member
+                    </button>
+                )}
             </div>
 
             {/* Invite Modal */}
@@ -99,16 +112,6 @@ export default function Team() {
                                         onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                                         className="input w-full"
                                         placeholder="e.g. john@example.com"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="label">Temporary Password</label>
-                                    <input
-                                        type="text"
-                                        value={newUser.password}
-                                        onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                                        className="input w-full"
-                                        placeholder="Min 6 characters"
                                     />
                                 </div>
                                 <div>
@@ -166,9 +169,9 @@ export default function Team() {
                                 </td>
                                 <td className="p-4">
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${member.role === 'Owner' || member.role === 'Admin' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                                            member.role === 'Moderator' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                        member.role === 'Moderator' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                                             member.role === 'Manage-only' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                            'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                                                'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
                                         }`}>
                                         <Shield size={10} />
                                         {member.role}
@@ -185,12 +188,14 @@ export default function Team() {
                                     {new Date(member.joinedAt).toLocaleDateString()}
                                 </td>
                                 <td className="p-4 text-right pr-6">
-                                    <button
-                                        onClick={() => handleDelete(member._id)}
-                                        className="p-2 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-red-400 transition-colors"
-                                    >
-                                        <Trash size={16} />
-                                    </button>
+                                    {(currentUserRole === 'Owner' || currentUserRole === 'Admin') && (
+                                        <button
+                                            onClick={() => handleDelete(member._id)}
+                                            className="p-2 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash size={16} />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

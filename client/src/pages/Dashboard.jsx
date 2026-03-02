@@ -11,10 +11,21 @@ export default function Dashboard() {
     // In a real app, these stats would come from an endpoint like /api/stats
     const [stats] = useState({ totalRequests: 0, activeInstances: 0, serverStatus: 'Online' });
     const [search, setSearch] = useState('');
+    const [currentUserRole, setCurrentUserRole] = useState(null);
 
     useEffect(() => {
         fetchProjects();
+        fetchCurrentUser();
     }, []);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchProjects = async () => {
         try {
@@ -43,10 +54,12 @@ export default function Dashboard() {
                         </h1>
                         <p className="text-zinc-400">Manage your ecosystem.</p>
                     </div>
-                    <Link to="/project/new" className="btn btn-primary btn-glow">
-                        <Plus size={20} />
-                        New Project
-                    </Link>
+                    {(currentUserRole === 'Owner' || currentUserRole === 'Admin') && (
+                        <Link to="/project/new" className="btn btn-primary btn-glow">
+                            <Plus size={20} />
+                            New Project
+                        </Link>
+                    )}
                 </div>
 
                 {/* Stats Row */}
@@ -104,10 +117,12 @@ export default function Dashboard() {
                                 <Database size={32} />
                             </div>
                             <h3 className="text-lg font-bold text-white mb-1">No Projects Found</h3>
-                            <p className="text-zinc-400 mb-6">Start by creating your first project.</p>
-                            <Link to="/project/new" className="btn btn-secondary inline-flex">
-                                Create Project
-                            </Link>
+                            <p className="text-zinc-400 mb-6">You currently have no projects visible or assigned to your profile.</p>
+                            {(currentUserRole === 'Owner' || currentUserRole === 'Admin') && (
+                                <Link to="/project/new" className="btn btn-secondary inline-flex">
+                                    Create Project
+                                </Link>
+                            )}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

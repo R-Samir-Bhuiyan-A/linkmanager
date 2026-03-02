@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Clock, FileEdit, Trash, Plus, AlertCircle, Info, Download, Activity, Globe } from 'lucide-react';
+import { Shield, Clock, FileEdit, Trash, Plus, AlertCircle, Info, Download, Activity, Globe, Filter, Search } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import api from '../api';
 import CategoryIcon from '../components/CategoryIcon';
@@ -10,9 +10,26 @@ export default function AuditLog() {
     const [apiLogs, setApiLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [filterMethod, setFilterMethod] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterEndpoint, setFilterEndpoint] = useState('');
+    const [filterIp, setFilterIp] = useState('');
+    const [filterProject, setFilterProject] = useState('');
+    const [projects, setProjects] = useState([]);
+
     useEffect(() => {
         fetchLogs();
+        fetchProjects();
     }, [activeTab]);
+
+    const fetchProjects = async () => {
+        try {
+            const res = await api.get('/projects');
+            setProjects(res.data);
+        } catch (err) {
+            console.error('Failed to fetch projects for filter:', err);
+        }
+    };
 
     const fetchLogs = async () => {
         setLoading(true);
@@ -21,7 +38,14 @@ export default function AuditLog() {
                 const res = await api.get('/audit/system');
                 setLogs(res.data);
             } else {
-                const res = await api.get('/audit/api-logs');
+                const query = new URLSearchParams();
+                if (filterProject) query.append('projectId', filterProject);
+                if (filterMethod) query.append('method', filterMethod);
+                if (filterStatus) query.append('status', filterStatus);
+                if (filterEndpoint) query.append('endpoint', filterEndpoint);
+                if (filterIp) query.append('ip', filterIp);
+
+                const res = await api.get(`/audit/api-logs?${query.toString()}`);
                 setApiLogs(res.data);
             }
         } catch (err) {
@@ -72,9 +96,14 @@ export default function AuditLog() {
                     <h1 className="text-3xl font-bold tracking-tight text-white">Audit Log</h1>
                     <p className="text-zinc-400">Track all changes and monitoring events.</p>
                 </div>
-                <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-2 text-zinc-300">
-                    <Download size={16} /> Export CSV
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={fetchLogs} className="px-4 py-2 bg-violet-600 border border-violet-500 rounded-lg text-sm font-bold shadow-lg shadow-violet-500/20 hover:bg-violet-500 transition-colors flex items-center gap-2 text-white">
+                        <Activity size={16} /> Apply Filters
+                    </button>
+                    <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-2 text-zinc-300">
+                        <Download size={16} /> Export CSV
+                    </button>
+                </div>
             </div>
 
             <div className="flex overflow-x-auto border-b border-white/5 mb-6 no-scrollbar">
@@ -85,9 +114,8 @@ export default function AuditLog() {
                         <button
                             key={id}
                             onClick={() => setActiveTab(id)}
-                            className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all whitespace-nowrap relative ${
-                                activeTab === id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-                            }`}
+                            className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all whitespace-nowrap relative ${activeTab === id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                                }`}
                         >
                             <Icon size={18} className={activeTab === id ? 'text-violet-400' : ''} />
                             {tab}
@@ -106,91 +134,147 @@ export default function AuditLog() {
                     logs.length === 0 ? (
                         <div className="p-12 text-center text-zinc-500">No system audit logs found.</div>
                     ) : (
-                    <table className="w-full text-left">
-                        <thead className="bg-white/5 border-b border-white/5 text-xs uppercase text-zinc-500 font-bold tracking-wider">
-                            <tr>
-                                <th className="p-4 pl-6">Event</th>
-                                <th className="p-4">User</th>
-                                <th className="p-4">Target</th>
-                                <th className="p-4 text-right pr-6">Time</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {logs.map(log => {
-                                const Icon = getIcon(log.action);
-                                return (
-                                    <tr key={log._id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-4 pl-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg bg-white/5 ${getColor(log.iconType)}`}>
-                                                    <Icon size={16} />
-                                                </div>
-                                                <span className="font-medium text-zinc-200">{log.action}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-zinc-400 flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] ring-1 ring-white/10 font-bold">
-                                                {log.user.charAt(0).toUpperCase()}
-                                            </div>
-                                            {log.user}
-                                        </td>
-                                        <td className="p-4 font-mono text-sm text-zinc-500">{log.target}</td>
-                                        <td className="p-4 text-right pr-6 text-zinc-500 text-sm flex items-center justify-end gap-2">
-                                            <Clock size={12} />
-                                            {new Date(log.createdAt).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                    )
-                ) : (
-                    apiLogs.length === 0 ? (
-                        <div className="p-12 text-center text-zinc-500">No API access logs found.</div>
-                    ) : (
                         <table className="w-full text-left">
                             <thead className="bg-white/5 border-b border-white/5 text-xs uppercase text-zinc-500 font-bold tracking-wider">
                                 <tr>
-                                    <th className="p-4 pl-6">Method</th>
-                                    <th className="p-4">Endpoint</th>
-                                    <th className="p-4">Status</th>
-                                    <th className="p-4">IP / Actor</th>
+                                    <th className="p-4 pl-6">Event</th>
+                                    <th className="p-4">User</th>
+                                    <th className="p-4">Target</th>
                                     <th className="p-4 text-right pr-6">Time</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5 h-96 overflow-y-auto w-full">
-                                {apiLogs.map(log => (
-                                    <tr key={log._id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-4 pl-6">
-                                            <span className={`font-bold text-xs ${getMethodColor(log.method)}`}>{log.method}</span>
-                                        </td>
-                                        <td className="p-4 font-mono text-sm text-zinc-300">
-                                            {log.endpoint}
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${getStatusColor(log.statusCode)}`}>
-                                                {log.statusCode}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="text-sm font-medium text-zinc-200">{log.ip}</div>
-                                            <div className="text-xs text-zinc-500">{log.user}</div>
-                                        </td>
-                                        <td className="p-4 text-right pr-6 text-zinc-500 text-sm flex items-center justify-end gap-2">
-                                            <Clock size={12} />
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                ))}
+                            <tbody className="divide-y divide-white/5">
+                                {logs.map(log => {
+                                    const Icon = getIcon(log.action);
+                                    return (
+                                        <tr key={log._id} className="hover:bg-white/5 transition-colors group">
+                                            <td className="p-4 pl-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg bg-white/5 ${getColor(log.iconType)}`}>
+                                                        <Icon size={16} />
+                                                    </div>
+                                                    <span className="font-medium text-zinc-200">{log.action}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-zinc-400 flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] ring-1 ring-white/10 font-bold">
+                                                    {log.user.charAt(0).toUpperCase()}
+                                                </div>
+                                                {log.user}
+                                            </td>
+                                            <td className="p-4 font-mono text-sm text-zinc-500">{log.target}</td>
+                                            <td className="p-4 text-right pr-6 text-zinc-500 text-sm flex items-center justify-end gap-2">
+                                                <Clock size={12} />
+                                                {new Date(log.createdAt).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     )
-                )}
+                ) : (
+                    <div className="flex flex-col">
+                        <div className="p-4 border-b border-white/5 bg-white/5 flex flex-wrap gap-4 items-center">
+                            <div className="flex items-center gap-2 text-zinc-400">
+                                <Filter size={16} /> <span className="text-sm font-bold uppercase tracking-wider">Filters</span>
+                            </div>
 
-                {!loading && (activeTab === 'system' ? logs.length > 0 : apiLogs.length > 0) && (
-                    <div className="p-4 border-t border-white/5 text-center text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors">
-                        View older logs
+                            <select
+                                value={filterProject}
+                                onChange={e => setFilterProject(e.target.value)}
+                                className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                            >
+                                <option value="">All Projects</option>
+                                {projects.map(p => (
+                                    <option key={p._id} value={p._id}>{p.name}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={filterMethod}
+                                onChange={e => setFilterMethod(e.target.value)}
+                                className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                            >
+                                <option value="">All Methods</option>
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+
+                            <input
+                                placeholder="Status (e.g. 200)"
+                                value={filterStatus}
+                                onChange={e => setFilterStatus(e.target.value)}
+                                className="w-32 bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                            />
+
+                            <div className="relative flex-1 min-w-[200px]">
+                                <Search className="absolute left-3 top-2 text-zinc-500" size={14} />
+                                <input
+                                    placeholder="Filter by endpoint..."
+                                    value={filterEndpoint}
+                                    onChange={e => setFilterEndpoint(e.target.value)}
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                                />
+                            </div>
+
+                            <input
+                                placeholder="Filter by IP..."
+                                value={filterIp}
+                                onChange={e => setFilterIp(e.target.value)}
+                                className="w-40 bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
+                            />
+                        </div>
+
+                        {apiLogs.length === 0 ? (
+                            <div className="p-12 text-center text-zinc-500">No API access logs found matching filters.</div>
+                        ) : (
+                            <table className="w-full text-left">
+                                <thead className="bg-white/5 border-b border-white/5 text-xs uppercase text-zinc-500 font-bold tracking-wider">
+                                    <tr>
+                                        <th className="p-4 pl-6">Method</th>
+                                        <th className="p-4">Endpoint</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4">IP / Actor</th>
+                                        <th className="p-4 text-right pr-6">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 h-96 overflow-y-auto w-full">
+                                    {apiLogs.map(log => (
+                                        <tr key={log._id} className="hover:bg-white/5 transition-colors group">
+                                            <td className="p-4 pl-6">
+                                                <span className={`font-bold text-xs ${getMethodColor(log.method)}`}>{log.method}</span>
+                                            </td>
+                                            <td className="p-4 font-mono text-sm text-zinc-300">
+                                                {log.endpoint}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${getStatusColor(log.statusCode)}`}>
+                                                    {log.statusCode}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm font-medium text-zinc-200">{log.ip}</div>
+                                                <div className="text-xs text-zinc-500">{log.user}</div>
+                                            </td>
+                                            <td className="p-4 text-right pr-6 text-zinc-500 text-sm flex items-center justify-end gap-2">
+                                                <Clock size={12} />
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+
+                        {!loading && (activeTab === 'system' ? logs.length > 0 : apiLogs.length > 0) && (
+                            <div className="p-4 border-t border-white/5 text-center text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors">
+                                View older logs
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -4,12 +4,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Settings = require('../models/Settings');
+const { requireAuth: auth } = require('../middleware/auth');
+const requireRole = require('../middleware/rbac');
 
 // Setup Multer Storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = './uploads';
-        if (!fs.existsSync(dir)){
+        if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir);
         }
         cb(null, dir);
@@ -42,7 +44,7 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH settings
-router.patch('/', async (req, res) => {
+router.patch('/', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         let settings = await getSettings();
 
@@ -82,12 +84,12 @@ router.patch('/', async (req, res) => {
 });
 
 // POST upload branding (logo or favicon)
-router.post('/upload', upload.single('image'), async (req, res) => {
+router.post('/upload', auth, requireRole(['Owner', 'Admin']), upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
-        
+
         const type = req.body.type; // 'logo' or 'favicon'
         if (!['logo', 'favicon'].includes(type)) {
             return res.status(400).json({ message: 'Invalid image type' });
@@ -95,7 +97,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
 
         const settings = await getSettings();
         const fileUrl = `/uploads/${req.file.filename}`;
-        
+
         if (type === 'logo') {
             settings.logoUrl = fileUrl;
         } else {
@@ -110,7 +112,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
 });
 
 // Remove branding
-router.delete('/branding/:type', async (req, res) => {
+router.delete('/branding/:type', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         const type = req.params.type;
         if (!['logo', 'favicon'].includes(type)) {
@@ -132,7 +134,7 @@ router.delete('/branding/:type', async (req, res) => {
 });
 
 // GET /api/settings/backups
-router.get('/backups', (req, res) => {
+router.get('/backups', auth, requireRole(['Owner', 'Admin']), (req, res) => {
     try {
         const BackupService = require('../services/BackupService');
         const backups = BackupService.getBackups();
@@ -143,7 +145,7 @@ router.get('/backups', (req, res) => {
 });
 
 // POST /api/settings/backups/trigger
-router.post('/backups/trigger', async (req, res) => {
+router.post('/backups/trigger', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         const BackupService = require('../services/BackupService');
         const result = await BackupService.performBackup();
@@ -158,7 +160,7 @@ router.post('/backups/trigger', async (req, res) => {
 });
 
 // GET /api/settings/backups/:name/download
-router.get('/backups/:name/download', async (req, res) => {
+router.get('/backups/:name/download', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         const BackupService = require('../services/BackupService');
         const fs = require('fs');
@@ -180,7 +182,7 @@ router.get('/backups/:name/download', async (req, res) => {
 });
 
 // POST test-smtp
-router.post('/test-smtp', async (req, res) => {
+router.post('/test-smtp', auth, requireRole(['Owner', 'Admin']), async (req, res) => {
     try {
         const nodemailer = require('nodemailer');
         const { host, port, user, pass } = req.body;

@@ -13,8 +13,6 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin images
 app.use(morgan("dev"));
-app.use(require("./middleware/tracker"));
-app.use(require("./middleware/apiLogger"));
 app.use("/uploads", express.static("uploads"));
 
 // Database Connection

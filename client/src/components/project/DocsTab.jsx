@@ -7,10 +7,21 @@ export default function DocsTab({ projectId }) {
     const [isEditing, setIsEditing] = useState(false);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(true);
+    const [currentUserRole, setCurrentUserRole] = useState(null);
 
     useEffect(() => {
         fetchProject();
+        fetchCurrentUser();
     }, [projectId]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            setCurrentUserRole(res.data.user?.role);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchProject = async () => {
         try {
@@ -40,28 +51,30 @@ export default function DocsTab({ projectId }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Project Documentation</h3>
-                {!isEditing ? (
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors text-sm font-medium"
-                    >
-                        <Edit2 size={14} /> Edit
-                    </button>
-                ) : (
-                    <div className="flex items-center gap-2">
+                {currentUserRole !== 'View-only' && (
+                    !isEditing ? (
                         <button
-                            onClick={() => setIsEditing(false)}
-                            className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                            onClick={() => setIsEditing(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors text-sm font-medium"
                         >
-                            <X size={18} />
+                            <Edit2 size={14} /> Edit
                         </button>
-                        <button
-                            onClick={handleSave}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors text-sm font-medium shadow-lg shadow-violet-500/20"
-                        >
-                            <Save size={14} /> Save
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsEditing(false)}
+                                className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors text-sm font-medium shadow-lg shadow-violet-500/20"
+                            >
+                                <Save size={14} /> Save
+                            </button>
+                        </div>
+                    )
                 )}
             </div>
 

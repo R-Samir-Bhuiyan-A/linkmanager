@@ -29,10 +29,16 @@ export default function Layout({ settings }) {
         { icon: Terminal, label: 'API Playground', to: '/api-docs', badge: 'New' },
         { icon: Book, label: 'API Reference', to: '/api-reference' },
         { icon: Activity, label: 'System Health', to: '/analytics' },
-        { icon: ShieldAlert, label: 'Audit Log', to: '/audit' },
-        { icon: Users, label: 'Team', to: '/team' },
-        { icon: Settings, label: 'Settings', to: '/settings' },
+        { icon: ShieldAlert, label: 'Audit Log', to: '/audit', roles: ['Owner', 'Admin'] },
+        { icon: Users, label: 'Team', to: '/team', roles: ['Owner', 'Admin'] },
+        { icon: Settings, label: 'Settings', to: '/settings', roles: ['Owner', 'Admin'] },
     ];
+
+    const filteredNavItems = navItems.filter(item => {
+        if (!item.roles) return true;
+        if (!user) return false;
+        return item.roles.includes(user.role);
+    });
 
     const handleSignOut = () => {
         localStorage.removeItem('token');
@@ -69,7 +75,7 @@ export default function Layout({ settings }) {
                         exit={{ opacity: 0, y: -20 }}
                         className="md:hidden fixed inset-0 top-16 z-40 bg-zinc-950/95 backdrop-blur-3xl p-4 space-y-2 border-t border-white/5"
                     >
-                        {navItems.map(item => (
+                        {filteredNavItems.map(item => (
                             <NavLink
                                 key={item.to}
                                 to={item.to}
@@ -115,7 +121,7 @@ export default function Layout({ settings }) {
 
                 <div className="flex-1 space-y-1">
                     <div className="text-xs font-bold text-zinc-600 uppercase tracking-wider px-3 mb-3">Platform</div>
-                    {navItems.map((item) => (
+                    {filteredNavItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
